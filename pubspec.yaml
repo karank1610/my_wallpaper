@@ -39,6 +39,9 @@ dependencies:
   firebase_auth: ^5.1.2
   cloud_firestore: ^5.1.0
   intl: ^0.20.1
+  particles_flutter: ^0.1.1
+  confetti: ^0.7.0
+
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +79,7 @@ flutter:
    - assets/wallpaper3.jpg
    - assets/wallpaper4.jpg
    - assets/wallpaper5.jpg
+   - assets/wallpaper6.jpg
    - assets/profile.png
    
   #   - images/a_dot_ham.jpeg

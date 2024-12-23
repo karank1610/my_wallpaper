@@ -1,177 +1,296 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
+import 'dart:async';
+import 'package:flutter/scheduler.dart';
 
-class ProfilePage extends StatelessWidget {
-  final bool isLoggedIn;
-  final String? userName;
-  final String? userEmail;
-  final String? profilePicUrl;
+class ProfilePage extends StatefulWidget {
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
 
-  ProfilePage({
-    this.isLoggedIn = false,
-    this.userName,
-    this.userEmail,
-    this.profilePicUrl,
-  });
+class _ProfilePageState extends State<ProfilePage>
+    with TickerProviderStateMixin {
+  bool isLoggedIn = false;
+  bool isDeveloper = false;
+  late Timer _timer;
+  double _animationValue = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(Duration(milliseconds: 160), (timer) {
+      setState(() {
+        _animationValue += 0.01;
+        if (_animationValue > 1) {
+          _animationValue = 0.0;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[200],
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.grey[100],
-        leading: SizedBox(),
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.notifications, color: Colors.black),
+          onPressed: () {
+            // Handle notifications
+          },
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications, color: Colors.blue),
+            icon: Icon(Icons.settings, color: Colors.black),
             onPressed: () {
-              // Notification action
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.settings, color: Colors.blue),
-            onPressed: () {
-              // Settings action
+              // Handle settings
             },
           ),
         ],
       ),
-      body: Container(
-        color: Colors.grey[100],
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Section
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: isLoggedIn && profilePicUrl != null
-                      ? NetworkImage(profilePicUrl!)
-                      : AssetImage('assets/profile.png') as ImageProvider,
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: isLoggedIn
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              userName ?? "User Name",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              userEmail ?? "user@example.com",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        )
-                      : SizedBox(),
-                ),
-                if (!isLoggedIn)
-                  ElevatedButton(
-                    onPressed: () {
-                      // Sign In action
-                    },
-                    child: Text("Sign In"),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.blue,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile Section
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage: AssetImage('assets/profile.png'),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isLoggedIn ? "John Doe" : "Welcome!",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (isLoggedIn)
+                          Text(
+                            "johndoe@example.com",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                      ],
                     ),
                   ),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            // Metrics Section
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                  if (!isLoggedIn)
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          isLoggedIn = true; // Simulate login
+                        });
+                      },
+                      child: Text("Sign In"),
+                    ),
+                ],
               ),
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+              SizedBox(height: 16),
+
+              // Metrics Section
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMetricItem(Icons.thumb_up, "Liked"),
+                      _buildMetricItem(Icons.people, "Following"),
+                      _buildMetricItem(Icons.remove_red_eye, "Viewed"),
+                      _buildMetricItem(Icons.file_download, "Downloads"),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+
+              // Options List
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 3,
+                child: Column(
                   children: [
-                    _buildMetricTile(Icons.favorite, "Liked", Colors.red),
-                    _buildMetricTile(Icons.person, "Following", Colors.green),
-                    _buildMetricTile(
-                        Icons.download_outlined, "Downloads", Colors.blue),
-                    _buildMetricTile(Icons.visibility, "Viewed", Colors.purple),
+                    _buildOptionItem(
+                      Icons.file_download,
+                      "Downloads",
+                      () {
+                        // Navigate to Downloads Page
+                      },
+                    ),
+                    Divider(height: 1),
+                    _buildOptionItem(
+                      Icons.campaign,
+                      "Bulletin",
+                      () {
+                        // Navigate to Bulletin Page
+                      },
+                    ),
+                    Divider(height: 1),
+                    _buildOptionItem(
+                      Icons.feedback,
+                      "Help & Feedback",
+                      () {
+                        // Navigate to Help & Feedback Page
+                      },
+                    ),
                   ],
                 ),
               ),
-            ),
-            SizedBox(height: 16),
 
-            // Options List
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 3,
-              child: Column(
-                children: [
-                  _buildOptionTile(Icons.download_outlined, "Downloads"),
-                  _buildOptionTile(Icons.announcement_outlined, "Bulletin"),
-                  _buildOptionTile(Icons.feedback_outlined, "Help & Feedback"),
-                ],
-              ),
-            ),
-          ],
+              SizedBox(height: 16),
+
+              // Developer Button with Sparkle Animation
+              if (isLoggedIn)
+                Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CustomPaint(
+                        size: Size(200, 100),
+                        painter: StarParticlePainter(
+                          numberOfParticles: 10,
+                          maxParticleSize: 8,
+                          particleColor: Colors.deepPurple.withAlpha(150),
+                          animationValue: _animationValue,
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (!isDeveloper) {
+                            setState(() {
+                              isDeveloper = true;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text("Application submitted successfully!"),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.deepPurple,
+                          backgroundColor: Colors.deepPurple,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          isDeveloper
+                              ? "Application Submitted"
+                              : "Apply for Developer",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMetricTile(IconData icon, String label, Color color) {
-    return GestureDetector(
-      onTap: () {
-        // Metric tap action
-      },
-      child: Column(
-        children: [
-          Icon(icon, size: 28, color: color),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+  Widget _buildMetricItem(IconData icon, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 32, color: Colors.blue),
+        SizedBox(height: 8),
+        Text(label, style: TextStyle(fontSize: 14)),
+      ],
     );
   }
 
-  Widget _buildOptionTile(IconData icon, String label) {
+  Widget _buildOptionItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.blue),
       title: Text(
-        label,
-        style: TextStyle(fontSize: 16),
+        title,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
       trailing: Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: () {
-        // Option tap action
-      },
+      onTap: onTap,
     );
+  }
+}
+
+class StarParticlePainter extends CustomPainter {
+  final int numberOfParticles;
+  final double maxParticleSize;
+  final Color particleColor;
+  final double animationValue;
+
+  StarParticlePainter({
+    required this.numberOfParticles,
+    required this.maxParticleSize,
+    required this.particleColor,
+    required this.animationValue,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = particleColor;
+    final random = Random();
+
+    for (int i = 0; i < numberOfParticles; i++) {
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final radius = random.nextDouble() * maxParticleSize;
+
+      _drawStar(canvas, paint, x, y, radius);
+    }
+  }
+
+  void _drawStar(
+      Canvas canvas, Paint paint, double x, double y, double radius) {
+    final path = Path();
+    final angle = pi / 5;
+
+    for (int i = 0; i < 10; i++) {
+      final r = (i % 2 == 0) ? radius : radius / 2;
+      final offsetX = x + r * cos(i * angle + animationValue * 2 * pi);
+      final offsetY = y + r * sin(i * angle + animationValue * 2 * pi);
+      if (i == 0) {
+        path.moveTo(offsetX, offsetY);
+      } else {
+        path.lineTo(offsetX, offsetY);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }

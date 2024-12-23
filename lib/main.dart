@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => SplashScreen(),
         '/home': (context) =>
-            ProfilePage(), // Replace with your actual Home Page
+            HomeScreen(), // Replace with your actual Home Page
       },
     );
   }
