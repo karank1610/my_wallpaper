@@ -41,6 +41,10 @@ dependencies:
   intl: ^0.20.1
   particles_flutter: ^0.1.1
   confetti: ^0.7.0
+  carousel_slider: ^5.0.0
+  jam_icons: ^0.0.1
+  flutter_floating_bottom_bar: ^1.2.0
+  dot_navigation_bar: ^1.0.2
 
 
 dev_dependencies:
@@ -81,6 +85,52 @@ flutter:
    - assets/wallpaper5.jpg
    - assets/wallpaper6.jpg
    - assets/profile.png
+   - assets/assets/community.jpg
+   - assets/assets/popular.jpg
+   - assets/assets/curated.jpg
+   - assets/assets/trending.jpg
+   - assets/assets/car.jpg
+   - assets/assets/animal.jpeg
+   - assets/assets/anime.jpeg
+   - assets/assets/nature.jpeg
+   - assets/assets/technology.jpeg
+   - assets/assets/space.jpeg
+   - assets/assets/pattern.jpg
+   - assets/assets/artwok.jpeg
+   - assets/assets/sciencefiction.jpeg
+   - assets/assets/marvel.jpg
+   - assets/assets/god.jpg
+   - assets/assets/communityw1.jpg
+   - assets/assets/communityw2.jpg
+   - assets/assets/communityw3.jpg
+   - assets/assets/communityw4.jpg
+   - assets/assets/communityw5.jpg
+   - assets/assets/curatedw3.jpeg
+   - assets/assets/curatedw4.jpg
+   - assets/assets/curatedw5.jpeg
+   - assets/assets/popularw1.jpg
+   - assets/assets/popularw2.jpg
+   - assets/assets/trendingw1.jpg
+   - assets/assets/trendingw2.jpg
+   - assets/assets/carw1.jpg
+   - assets/assets/carw2.jpg
+   - assets/assets/animalw1.jpg
+   - assets/assets/naturew1.jpg
+   - assets/assets/naturew2.jpg
+   - assets/assets/technologyw1.jpg
+   - assets/assets/technologyw3.jpg
+   - assets/assets/spacew2.jpeg
+   - assets/assets/patternw1.jpeg
+   - assets/assets/patternw2.jpeg
+   - assets/assets/artworkw1.jpg
+   - assets/assets/artworkw2.jpg
+   - assets/assets/sciencefictionw1.jpeg
+   - assets/assets/sciencefictionw2.jpeg
+   - assets/assets/marvelw1.jpeg
+   - assets/assets/marvelw2.jpeg
+   - assets/assets/godw1.jpg
+   - assets/assets/godw2.jpeg
+
    
   #   - images/a_dot_ham.jpeg
 

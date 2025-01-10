@@ -1,297 +1,219 @@
-import 'dart:async';
+import 'package:carousel_slider/carousel_options.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:my_wallpaper/screens/collection_page.dart';
-import 'package:my_wallpaper/screens/omg_page.dart';
-import 'profile_page.dart'; // Import the ProfilePage file
 
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  int _currentIndex = 0; // Tracks the selected tab (fragment)
-  late Timer _rotationTimer;
-  int _currentCollectionIndex = 0;
-  late TabController _tabController;
-
-  final List<Map<String, String>> collections = [
-    {'title': 'Super Car Collection', 'image': 'assets/car.jpg'},
-    {'title': 'Beautiful Sky', 'image': 'assets/sky.jpg'},
-    {'title': 'Abstract Art', 'image': 'assets/abstract.jpg'},
-    {'title': 'Explore Space', 'image': 'assets/space.jpg'},
-  ];
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentTabIndex = 0;
+  bool _isScrollingDown = false;
+  ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-
-    _rotationTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      setState(() {
-        _currentCollectionIndex =
-            (_currentCollectionIndex + 1) % collections.length;
-      });
+    _scrollController.addListener(() {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        if (!_isScrollingDown) {
+          setState(() {
+            _isScrollingDown = true;
+          });
+        }
+      } else if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
+        if (_isScrollingDown) {
+          setState(() {
+            _isScrollingDown = false;
+          });
+        }
+      }
     });
   }
 
   @override
   void dispose() {
-    _rotationTimer.cancel();
-    _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex, // Switch between HomeScreen and ProfilePage
-        children: [
-          _buildHomePage(),
-          CollectionPage(),
-          OmgPage(),
-          ProfilePage(), // Add ProfilePage as another screen in the IndexedStack
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.notifications, color: Colors.white),
+          onPressed: () {},
+        ),
+        centerTitle: true,
+        title: Text(
+          "MyWallpaper",
+          style: TextStyle(
+              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.category, color: Colors.white),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => CollectionPage(),
+                ),
+              );
+            },
+          ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.collections), label: 'Collection'),
-          BottomNavigationBarItem(icon: Icon(Icons.whatshot), label: 'OMG'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Me'),
-        ],
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index; // Set the correct index for the selected tab
-          });
-        },
-        type: BottomNavigationBarType.fixed,
+      body: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            TabBar(
+              indicatorColor: Colors.white,
+              tabs: [
+                Tab(text: "Default"),
+                Tab(text: "Latest"),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildWallpaperGrid("default"),
+                  _buildWallpaperGrid("latest"),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        height:
+            _isScrollingDown ? 0 : 70, // Height adjustment for floating effect
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: 50.0, vertical: 10.0),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9), // Transparent white
+            borderRadius: BorderRadius.circular(40.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2), // Floating shadow
+                blurRadius: 15.0,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(40.0),
+            child: BottomNavigationBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              currentIndex: _currentTabIndex,
+              type: BottomNavigationBarType.fixed,
+              onTap: (index) {
+                setState(() {
+                  _currentTabIndex = index;
+                });
+              },
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: "Home",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: "Search",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.upload_file),
+                  label: "Upload",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: "Profile",
+                ),
+              ],
+              selectedItemColor: Colors.blue,
+              unselectedItemColor: Colors.black54,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildHomePage() {
+  Widget _buildWallpaperGrid(String type) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 35),
-            child: Container(
-              height: 40,
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search wallpapers...',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                ),
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
+        CarouselSlider(
+          options: CarouselOptions(
+            height: 200,
+            autoPlay: true,
+            enlargeCenterPage: true,
+            viewportFraction: 0.9,
           ),
-        ),
-        TabBar(
-          controller: _tabController,
-          labelColor: Colors.blue,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.blue,
-          tabs: [
-            Tab(text: 'Wallpapers'),
-            Tab(text: 'Live Wallpapers'),
-          ],
-        ),
-        Flexible(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCollection(),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildCircularOption('Hot', Icons.local_fire_department),
-                    _buildCircularOption('New', Icons.new_releases),
-                    _buildCircularOption('Trending', Icons.trending_up),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Container(
-                    alignment: Alignment.center,
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+          items: ["New Arrivals", "Most Downloaded"].map((bannerText) {
+            return Builder(
+              builder: (BuildContext context) {
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  margin: EdgeInsets.symmetric(horizontal: 5.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Center(
                     child: Text(
-                      '🔥 Explore trending wallpapers now!',
+                      bannerText,
                       style: TextStyle(
-                        fontSize: 14,
+                        color: Colors.white,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
                       ),
                     ),
                   ),
-                ),
-                _buildWallpaperCategory('Nature', [
-                  'assets/wallpaper1.jpg',
-                  'assets/wallpaper2.jpg',
-                  'assets/wallpaper3.jpg'
-                ]),
-                _buildWallpaperCategory('Cars', [
-                  'assets/wallpaper4.jpg',
-                  'assets/wallpaper5.jpg',
-                  'assets/wallpaper6.jpg'
-                ]),
-                _buildWallpaperCategory('Abstract Art', [
-                  'assets/abstract.jpg',
-                  'assets/animals.jpg',
-                  'assets/nature.jpg'
-                ]),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCollection() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          height: 180,
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 8,
-                spreadRadius: 2,
-                offset: Offset(0, 4),
-              ),
-            ],
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Image.asset(
-              collections[_currentCollectionIndex]['image']!,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 10,
-          bottom: 20,
-          child: Text(
-            collections[_currentCollectionIndex]['title']!,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        Positioned(
-          right: 10,
-          bottom: 11,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              backgroundColor: Colors.black.withOpacity(0.7),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () {
-              // Navigate to view wallpapers
-            },
-            child: Text(
-              'View',
-              style: TextStyle(fontSize: 14, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCircularOption(String label, IconData icon) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.blue,
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
-        SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _buildWallpaperCategory(String title, List<String> images) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () {
-                  // Navigate to view all wallpapers in this category
-                },
-                child: Text(
-                  'View All',
-                  style: TextStyle(fontSize: 14, color: Colors.blue),
-                ),
-              ),
-            ],
-          ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: images.map((image) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      image,
-                      height: 165,
-                      width: 115,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
                 );
-              }).toList(),
+              },
+            );
+          }).toList(),
+        ),
+        Expanded(
+          child: GridView.builder(
+            controller: _scrollController,
+            padding: EdgeInsets.all(8.0),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8.0,
+              mainAxisSpacing: 8.0,
+              childAspectRatio: 0.7,
             ),
+            itemCount: 20, // Replace with dynamic count
+            itemBuilder: (context, index) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Center(
+                  child: Text(
+                    "Wallpaper $index",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
