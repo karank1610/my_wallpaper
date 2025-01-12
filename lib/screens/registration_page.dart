@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pigeon_user_details.dart';
 
 class RegistrationPage extends StatefulWidget {
+  const RegistrationPage({super.key});
+
   @override
   _RegistrationPageState createState() => _RegistrationPageState();
 }
@@ -60,7 +62,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registration Successful')),
+            const SnackBar(content: Text('Registration Successful')),
           );
 
           // Navigate back to login page
@@ -103,8 +105,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(height: 40),
-                Text(
+                const SizedBox(height: 40),
+                const Text(
                   "Create an Account",
                   style: TextStyle(
                     fontSize: 28,
@@ -112,7 +114,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     color: Colors.green,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   "Join us to explore amazing wallpapers",
                   style: TextStyle(
@@ -120,7 +122,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     color: Colors.grey[700],
                   ),
                 ),
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -140,7 +142,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         controller: nameController,
                         decoration: InputDecoration(
                           labelText: "Full Name",
-                          prefixIcon: Icon(Icons.person),
+                          prefixIcon: const Icon(Icons.person),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -152,12 +154,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 15),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: emailController,
                         decoration: InputDecoration(
                           labelText: "Email",
-                          prefixIcon: Icon(Icons.email),
+                          prefixIcon: const Icon(Icons.email),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -174,12 +176,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 15),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: passwordController,
                         decoration: InputDecoration(
                           labelText: "Password",
-                          prefixIcon: Icon(Icons.lock),
+                          prefixIcon: const Icon(Icons.lock),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -195,12 +197,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 15),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: confirmPasswordController,
                         decoration: InputDecoration(
                           labelText: "Confirm Password",
-                          prefixIcon: Icon(Icons.lock_outline),
+                          prefixIcon: const Icon(Icons.lock_outline),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -213,12 +215,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 15),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: dobController,
                         decoration: InputDecoration(
                           labelText: "Date of Birth",
-                          prefixIcon: Icon(Icons.calendar_today),
+                          prefixIcon: const Icon(Icons.calendar_today),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -232,12 +234,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 15),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: phoneController,
                         decoration: InputDecoration(
                           labelText: "Phone Number",
-                          prefixIcon: Icon(Icons.phone),
+                          prefixIcon: const Icon(Icons.phone),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -250,9 +252,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 30),
+                      const SizedBox(height: 30),
                       _isLoading
-                          ? CircularProgressIndicator()
+                          ? const CircularProgressIndicator()
                           : ElevatedButton(
                               onPressed: _registerUser,
                               style: ElevatedButton.styleFrom(
@@ -262,7 +264,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              child: Text(
+                              child: const Text(
                                 "Register",
                                 style: TextStyle(fontSize: 16),
                               ),
@@ -270,12 +272,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ],
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text(
+                  child: const Text(
                     "Already have an account? Login here",
                     style: TextStyle(color: Colors.green),
                   ),

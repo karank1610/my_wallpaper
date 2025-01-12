@@ -5,6 +5,8 @@ import 'package:my_wallpaper/screens/omg_page.dart';
 import 'profile_page.dart'; // Import the ProfilePage file
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -28,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    _rotationTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+    _rotationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       setState(() {
         _currentCollectionIndex =
             (_currentCollectionIndex + 1) % collections.length;
@@ -57,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        items: [
+        items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
               icon: Icon(Icons.collections), label: 'Collection'),
@@ -81,12 +83,12 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
           child: Padding(
             padding: const EdgeInsets.only(top: 35),
-            child: Container(
+            child: SizedBox(
               height: 40,
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search wallpapers...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
@@ -94,9 +96,9 @@ class _HomeScreenState extends State<HomeScreen>
                   filled: true,
                   fillColor: Colors.grey[200],
                   contentPadding:
-                      EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 ),
-                style: TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 16),
               ),
             ),
           ),
@@ -106,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen>
           labelColor: Colors.blue,
           unselectedLabelColor: Colors.grey,
           indicatorColor: Colors.blue,
-          tabs: [
+          tabs: const [
             Tab(text: 'Wallpapers'),
             Tab(text: 'Live Wallpapers'),
           ],
@@ -118,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCollection(),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -127,17 +129,17 @@ class _HomeScreenState extends State<HomeScreen>
                     _buildCircularOption('Trending', Icons.trending_up),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Container(
                     alignment: Alignment.center,
-                    padding: EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.blue[50],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
+                    child: const Text(
                       '🔥 Explore trending wallpapers now!',
                       style: TextStyle(
                         fontSize: 14,
@@ -177,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen>
         Container(
           height: 180,
           decoration: BoxDecoration(
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 8,
@@ -202,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen>
           bottom: 20,
           child: Text(
             collections[_currentCollectionIndex]['title']!,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -214,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen>
           bottom: 11,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               backgroundColor: Colors.black.withOpacity(0.7),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -223,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: () {
               // Navigate to view wallpapers
             },
-            child: Text(
+            child: const Text(
               'View',
               style: TextStyle(fontSize: 14, color: Colors.white),
             ),
@@ -241,8 +243,8 @@ class _HomeScreenState extends State<HomeScreen>
           backgroundColor: Colors.blue,
           child: Icon(icon, color: Colors.white, size: 20),
         ),
-        SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 12)),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
@@ -258,13 +260,13 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               Text(
                 title,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextButton(
                 onPressed: () {
                   // Navigate to view all wallpapers in this category
                 },
-                child: Text(
+                child: const Text(
                   'View All',
                   style: TextStyle(fontSize: 14, color: Colors.blue),
                 ),

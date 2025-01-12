@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:flutter/scheduler.dart';
 
 class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
@@ -18,7 +20,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(Duration(milliseconds: 160), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 160), (timer) {
       setState(() {
         _animationValue += 0.01;
         if (_animationValue > 1) {
@@ -42,14 +44,14 @@ class _ProfilePageState extends State<ProfilePage>
         elevation: 0,
         backgroundColor: Colors.white,
         leading: IconButton(
-          icon: Icon(Icons.notifications, color: Colors.black),
+          icon: const Icon(Icons.notifications, color: Colors.black),
           onPressed: () {
             // Handle notifications
           },
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.black),
+            icon: const Icon(Icons.settings, color: Colors.black),
             onPressed: () {
               // Handle settings
             },
@@ -65,24 +67,24 @@ class _ProfilePageState extends State<ProfilePage>
               // Profile Section
               Row(
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 40,
                     backgroundImage: AssetImage('assets/profile.png'),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           isLoggedIn ? "John Doe" : "Welcome!",
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         if (isLoggedIn)
-                          Text(
+                          const Text(
                             "johndoe@example.com",
                             style: TextStyle(color: Colors.grey),
                           ),
@@ -96,11 +98,11 @@ class _ProfilePageState extends State<ProfilePage>
                           isLoggedIn = true; // Simulate login
                         });
                       },
-                      child: Text("Sign In"),
+                      child: const Text("Sign In"),
                     ),
                 ],
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Metrics Section
               Card(
@@ -121,7 +123,7 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Options List
               Card(
@@ -138,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage>
                         // Navigate to Downloads Page
                       },
                     ),
-                    Divider(height: 1),
+                    const Divider(height: 1),
                     _buildOptionItem(
                       Icons.campaign,
                       "Bulletin",
@@ -146,7 +148,7 @@ class _ProfilePageState extends State<ProfilePage>
                         // Navigate to Bulletin Page
                       },
                     ),
-                    Divider(height: 1),
+                    const Divider(height: 1),
                     _buildOptionItem(
                       Icons.feedback,
                       "Help & Feedback",
@@ -158,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
               ),
 
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Developer Button with Sparkle Animation
               if (isLoggedIn)
@@ -167,7 +169,7 @@ class _ProfilePageState extends State<ProfilePage>
                     alignment: Alignment.center,
                     children: [
                       CustomPaint(
-                        size: Size(200, 100),
+                        size: const Size(200, 100),
                         painter: StarParticlePainter(
                           numberOfParticles: 10,
                           maxParticleSize: 8,
@@ -182,7 +184,7 @@ class _ProfilePageState extends State<ProfilePage>
                               isDeveloper = true;
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content:
                                     Text("Application submitted successfully!"),
                               ),
@@ -192,7 +194,7 @@ class _ProfilePageState extends State<ProfilePage>
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.deepPurple,
                           backgroundColor: Colors.deepPurple,
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -202,7 +204,7 @@ class _ProfilePageState extends State<ProfilePage>
                           isDeveloper
                               ? "Application Submitted"
                               : "Apply for Developer",
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -224,8 +226,8 @@ class _ProfilePageState extends State<ProfilePage>
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 32, color: Colors.blue),
-        SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 14)),
       ],
     );
   }
@@ -235,9 +237,9 @@ class _ProfilePageState extends State<ProfilePage>
       leading: Icon(icon, color: Colors.blue),
       title: Text(
         title,
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
-      trailing: Icon(Icons.chevron_right, color: Colors.grey),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: onTap,
     );
   }
@@ -273,7 +275,7 @@ class StarParticlePainter extends CustomPainter {
   void _drawStar(
       Canvas canvas, Paint paint, double x, double y, double radius) {
     final path = Path();
-    final angle = pi / 5;
+    const angle = pi / 5;
 
     for (int i = 0; i < 10; i++) {
       final r = (i % 2 == 0) ? radius : radius / 2;
