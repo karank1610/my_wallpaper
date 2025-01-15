@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-<<<<<<< HEAD
 class CollectionPage {
   static void showCategoryDialog(BuildContext context) {
     showDialog(
@@ -122,16 +121,11 @@ class WallpaperPage extends StatelessWidget {
   final String category;
 
   const WallpaperPage({super.key, required this.category});
-=======
-class CollectionPage extends StatelessWidget {
-  const CollectionPage({super.key});
->>>>>>> bd53509da20207125046a8e55f4f0f57be382127
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
         title: Text(
           "$category Wallpapers",
           style:
@@ -145,12 +139,6 @@ class CollectionPage extends StatelessWidget {
           "Wallpapers will be displayed here.",
           style: TextStyle(color: Colors.white),
         ),
-=======
-        title: const Text('Collection Page'),
-      ),
-      body: const Center(
-        child: Text('Welcome to the Collection Page!'),
->>>>>>> bd53509da20207125046a8e55f4f0f57be382127
       ),
     );
   }
