@@ -11,6 +11,8 @@ import 'package:my_wallpaper/screens/wallpaper_upload_screen.dart';
 import 'package:my_wallpaper/screens/registration_page.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -29,22 +31,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      if (_scrollController.position.userScrollDirection ==
-          ScrollDirection.reverse) {
-        if (!_isScrollingDown) {
-          setState(() {
-            _isScrollingDown = true;
-          });
-        }
-      } else if (_scrollController.position.userScrollDirection ==
-          ScrollDirection.forward) {
-        if (_isScrollingDown) {
-          setState(() {
-            _isScrollingDown = false;
-          });
-        }
-      }
+    _tabController = TabController(length: 2, vsync: this);
+
+    _rotationTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+      setState(() {
+        _currentCollectionIndex =
+            (_currentCollectionIndex + 1) % collections.length;
+      });
     });
   }
 
@@ -103,91 +96,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        decoration: BoxDecoration(boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 25,
-              offset: const Offset(8, 20))
-        ]),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BottomNavigationBar(
-              backgroundColor: Colors.transparent,
-              selectedItemColor: Colors.redAccent,
-              unselectedItemColor: Colors.black,
-              currentIndex: myCurrentIndex,
-              onTap: (index) async {
-                setState(() {
-                  myCurrentIndex = index;
-                });
-
-                if (index == 2) {
-                  // Upload button tapped
-                  User? user = FirebaseAuth.instance.currentUser;
-
-                  if (user != null) {
-                    // User is logged in, navigate to WallpaperUploadScreen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            WallpaperUploadForm(), // Replace with actual screen
-                      ),
-                    );
-                  } else {
-                    // User is not logged in, show a snackbar or dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content:
-                            Text("Please log in first to upload wallpapers."),
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                } else if (index == 3) {
-                  // Profile button tapped
-                  User? user = FirebaseAuth.instance.currentUser;
-
-                  if (user != null) {
-                    // User is logged in, navigate to ProfilePage
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfilePage(
-                          onNavigateToHome: () {
-                            setState(() {
-                              myCurrentIndex = 0; // Reset index to Home
-                            });
-                            Navigator.pop(context); // Close the ProfilePage
-                          },
-                        ),
-                      ),
-                    );
-                  } else {
-                    // User is not logged in, navigate to SignUpPage
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            SignUpScreen(), // Replace with your sign-up page
-                      ),
-                    );
-                  }
-                }
-              },
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.search), label: "Search"),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.upload), label: "Upload"),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline), label: "Profile")
-              ]),
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.collections), label: 'Collection'),
+          BottomNavigationBarItem(icon: Icon(Icons.whatshot), label: 'OMG'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Me'),
+        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index; // Set the correct index for the selected tab
+          });
+        },
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }
@@ -195,26 +118,68 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWallpaperGrid(String type) {
     return Column(
       children: [
-        CarouselSlider(
-          options: CarouselOptions(
-            height: 200,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            viewportFraction: 0.9,
-          ),
-          items: ["New Arrivals", "Most Downloaded"].map((bannerText) {
-            return Builder(
-              builder: (BuildContext context) {
-                return Container(
-                  width: MediaQuery.of(context).size.width,
-                  margin: EdgeInsets.symmetric(horizontal: 5.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(10.0),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 35),
+            child: Container(
+              height: 40,
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search wallpapers...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
                   ),
-                  child: Center(
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                ),
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+        TabBar(
+          controller: _tabController,
+          labelColor: Colors.blue,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Colors.blue,
+          tabs: [
+            Tab(text: 'Wallpapers'),
+            Tab(text: 'Live Wallpapers'),
+          ],
+        ),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCollection(),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildCircularOption('Hot', Icons.local_fire_department),
+                    _buildCircularOption('New', Icons.new_releases),
+                    _buildCircularOption('Trending', Icons.trending_up),
+                  ],
+                ),
+                SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    alignment: Alignment.center,
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Text(
-                      bannerText,
+                      '🔥 Explore trending wallpapers now!',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -222,50 +187,127 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                );
-              },
-            );
-          }).toList(),
+                ),
+                _buildWallpaperCategory('Nature', [
+                  'assets/wallpaper1.jpg',
+                  'assets/wallpaper2.jpg',
+                  'assets/wallpaper3.jpg'
+                ]),
+                _buildWallpaperCategory('Cars', [
+                  'assets/wallpaper4.jpg',
+                  'assets/wallpaper5.jpg',
+                  'assets/wallpaper6.jpg'
+                ]),
+                _buildWallpaperCategory('Abstract Art', [
+                  'assets/abstract.jpg',
+                  'assets/animals.jpg',
+                  'assets/nature.jpg'
+                ]),
+              ],
+            ),
+          ),
         ),
-        Expanded(
-          child: Stack(
-            children: [
-              GridView.builder(
-                controller: _scrollController,
-                padding: EdgeInsets.only(
-                  left: 8.0,
-                  right: 8.0,
-                  top: 8.0,
-                  bottom:
-                      0.0, // Reduced padding to extend content below the navigation bar
-                ),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
-                ),
-                itemCount: 20, // Replace with dynamic count
-                itemBuilder: (context, index) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Center(
-                      child: Text(
-                        "Wallpaper $index",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  );
-                },
+      ],
+    );
+  }
+
+  Widget _buildCollection() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8,
+                spreadRadius: 2,
+                offset: Offset(0, 4),
               ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 40.0,
-                  color: Colors.transparent, // Ensure no visual conflict
+            ],
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.asset(
+              collections[_currentCollectionIndex]['image']!,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        Positioned(
+          left: 10,
+          bottom: 20,
+          child: Text(
+            collections[_currentCollectionIndex]['title']!,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Positioned(
+          right: 10,
+          bottom: 11,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              backgroundColor: Colors.black.withOpacity(0.7),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              // Navigate to view wallpapers
+            },
+            child: Text(
+              'View',
+              style: TextStyle(fontSize: 14, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCircularOption(String label, IconData icon) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: Colors.blue,
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+        SizedBox(height: 8),
+        Text(label, style: TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildWallpaperCategory(String title, List<String> images) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Navigate to view all wallpapers in this category
+                },
+                child: Text(
+                  'View All',
+                  style: TextStyle(fontSize: 14, color: Colors.blue),
                 ),
               ),
             ],

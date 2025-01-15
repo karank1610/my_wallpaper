@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -18,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Initialize AnimationController
     _controller = AnimationController(
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
@@ -31,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // Navigate to the next screen after a delay
-    Timer(Duration(seconds: 1), () {
+    Timer(const Duration(seconds: 1), () {
       Navigator.pushReplacementNamed(context, '/home');
     });
   }
@@ -58,10 +60,10 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 150,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             FadeTransition(
               opacity: _textAnimation,
-              child: Text(
+              child: const Text(
                 'MyWallpaper',
                 style: TextStyle(
                   fontSize: 24,
