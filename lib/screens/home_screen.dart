@@ -4,6 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:my_wallpaper/screens/collection_page.dart';
+import 'package:my_wallpaper/screens/omg_page.dart';
+import 'package:my_wallpaper/screens/profile_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_wallpaper/screens/wallpaper_upload_screen.dart';
+import 'package:my_wallpaper/screens/registration_page.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -11,6 +16,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int myCurrentIndex = 0;
+  List pages = [
+    HomeScreen(),
+    OmgPage(),
+    CollectionPage(),
+  ];
   int _currentTabIndex = 0;
   bool _isScrollingDown = false;
   ScrollController _scrollController = ScrollController();
@@ -46,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -62,13 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.category, color: Colors.white),
+            icon: const Icon(Icons.category, color: Colors.white),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CollectionPage(),
-                ),
-              );
+              CollectionPage.showCategoryDialog(context);
             },
           ),
         ],
@@ -95,57 +103,90 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        height:
-            _isScrollingDown ? 0 : 70, // Height adjustment for floating effect
-        child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 50.0, vertical: 10.0),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9), // Transparent white
-            borderRadius: BorderRadius.circular(40.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2), // Floating shadow
-                blurRadius: 15.0,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(40.0),
-            child: BottomNavigationBar(
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: BoxDecoration(boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 25,
+              offset: const Offset(8, 20))
+        ]),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BottomNavigationBar(
               backgroundColor: Colors.transparent,
-              elevation: 0,
-              currentIndex: _currentTabIndex,
-              type: BottomNavigationBarType.fixed,
-              onTap: (index) {
+              selectedItemColor: Colors.redAccent,
+              unselectedItemColor: Colors.black,
+              currentIndex: myCurrentIndex,
+              onTap: (index) async {
                 setState(() {
-                  _currentTabIndex = index;
+                  myCurrentIndex = index;
                 });
+
+                if (index == 2) {
+                  // Upload button tapped
+                  User? user = FirebaseAuth.instance.currentUser;
+
+                  if (user != null) {
+                    // User is logged in, navigate to WallpaperUploadScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            WallpaperUploadForm(), // Replace with actual screen
+                      ),
+                    );
+                  } else {
+                    // User is not logged in, show a snackbar or dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            Text("Please log in first to upload wallpapers."),
+                        behavior: SnackBarBehavior.floating,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } else if (index == 3) {
+                  // Profile button tapped
+                  User? user = FirebaseAuth.instance.currentUser;
+
+                  if (user != null) {
+                    // User is logged in, navigate to ProfilePage
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfilePage(
+                          onNavigateToHome: () {
+                            setState(() {
+                              myCurrentIndex = 0; // Reset index to Home
+                            });
+                            Navigator.pop(context); // Close the ProfilePage
+                          },
+                        ),
+                      ),
+                    );
+                  } else {
+                    // User is not logged in, navigate to SignUpPage
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            SignUpScreen(), // Replace with your sign-up page
+                      ),
+                    );
+                  }
+                }
               },
-              items: [
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: "Home",
-                ),
+                    icon: Icon(Icons.search), label: "Search"),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.search),
-                  label: "Search",
-                ),
+                    icon: Icon(Icons.upload), label: "Upload"),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.upload_file),
-                  label: "Upload",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person),
-                  label: "Profile",
-                ),
-              ],
-              selectedItemColor: Colors.blue,
-              unselectedItemColor: Colors.black54,
-            ),
-          ),
+                    icon: Icon(Icons.person_outline), label: "Profile")
+              ]),
         ),
       ),
     );
@@ -187,30 +228,47 @@ class _HomeScreenState extends State<HomeScreen> {
           }).toList(),
         ),
         Expanded(
-          child: GridView.builder(
-            controller: _scrollController,
-            padding: EdgeInsets.all(8.0),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8.0,
-              mainAxisSpacing: 8.0,
-              childAspectRatio: 0.7,
-            ),
-            itemCount: 20, // Replace with dynamic count
-            itemBuilder: (context, index) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(8.0),
+          child: Stack(
+            children: [
+              GridView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.only(
+                  left: 8.0,
+                  right: 8.0,
+                  top: 8.0,
+                  bottom:
+                      0.0, // Reduced padding to extend content below the navigation bar
                 ),
-                child: Center(
-                  child: Text(
-                    "Wallpaper $index",
-                    style: TextStyle(color: Colors.white),
-                  ),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8.0,
+                  mainAxisSpacing: 8.0,
+                  childAspectRatio: 0.7,
                 ),
-              );
-            },
+                itemCount: 20, // Replace with dynamic count
+                itemBuilder: (context, index) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Wallpaper $index",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  height: 40.0,
+                  color: Colors.transparent, // Ensure no visual conflict
+                ),
+              ),
+            ],
           ),
         ),
       ],

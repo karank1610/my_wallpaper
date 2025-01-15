@@ -1,296 +1,163 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
-import 'dart:async';
-import 'package:flutter/scheduler.dart';
 
 class ProfilePage extends StatefulWidget {
+  final Function onNavigateToHome;
+
+  ProfilePage({required this.onNavigateToHome});
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage>
-    with TickerProviderStateMixin {
-  bool isLoggedIn = false;
-  bool isDeveloper = false;
-  late Timer _timer;
-  double _animationValue = 0.0;
+class _ProfilePageState extends State<ProfilePage> {
+  String _imagePath =
+      "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Placeholder fixed
+  String _userName = "Kanani Jay6145";
+  String _email = "@KananiJay6145";
 
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(Duration(milliseconds: 160), (timer) {
-      setState(() {
-        _animationValue += 0.01;
-        if (_animationValue > 1) {
-          _animationValue = 0.0;
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
+  final List<String> wallpapers = [
+    'assets/wallpaper1.jpg',
+    'assets/wallpaper2.jpg',
+    'assets/wallpaper3.jpg',
+    'assets/wallpaper4.jpg',
+    'assets/wallpaper5.jpg',
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
+        title: Text('Profile', style: TextStyle(color: Colors.white)),
         leading: IconButton(
-          icon: Icon(Icons.notifications, color: Colors.black),
+          icon: Icon(Icons.arrow_back_sharp),
           onPressed: () {
-            // Handle notifications
+            widget.onNavigateToHome(); // Return to Home Page
           },
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.black),
+            icon: Icon(Icons.menu),
             onPressed: () {
-              // Handle settings
+              // Menu icon with no assigned event
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile Section
-              Row(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 250,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.black,
+            automaticallyImplyLeading: false, // Disable default back button
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: AssetImage('assets/profile.png'),
+                  Positioned(
+                    top: 40,
+                    left: MediaQuery.of(context).size.width / 2 - 50,
+                    child: GestureDetector(
+                      onTap: () {
+                        _pickImage();
+                      },
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.purple,
+                        backgroundImage: NetworkImage(_imagePath),
+                        child: _imagePath.isEmpty
+                            ? Icon(Icons.camera_alt,
+                                size: 40, color: Colors.white)
+                            : null,
+                      ),
+                    ),
                   ),
-                  SizedBox(width: 16),
-                  Expanded(
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          isLoggedIn ? "John Doe" : "Welcome!",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          _userName,
+                          style: TextStyle(color: Colors.white, fontSize: 18),
                         ),
-                        if (isLoggedIn)
-                          Text(
-                            "johndoe@example.com",
-                            style: TextStyle(color: Colors.grey),
-                          ),
+                        Text(
+                          _email,
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
                       ],
                     ),
                   ),
-                  if (!isLoggedIn)
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          isLoggedIn = true; // Simulate login
-                        });
-                      },
-                      child: Text("Sign In"),
-                    ),
                 ],
               ),
-              SizedBox(height: 16),
-
-              // Metrics Section
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildMetricItem(Icons.thumb_up, "Liked"),
-                      _buildMetricItem(Icons.people, "Following"),
-                      _buildMetricItem(Icons.remove_red_eye, "Viewed"),
-                      _buildMetricItem(Icons.file_download, "Downloads"),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-
-              // Options List
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
-                child: Column(
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildListDelegate(
+              [
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildOptionItem(
-                      Icons.file_download,
-                      "Downloads",
-                      () {
-                        // Navigate to Downloads Page
-                      },
-                    ),
-                    Divider(height: 1),
-                    _buildOptionItem(
-                      Icons.campaign,
-                      "Bulletin",
-                      () {
-                        // Navigate to Bulletin Page
-                      },
-                    ),
-                    Divider(height: 1),
-                    _buildOptionItem(
-                      Icons.feedback,
-                      "Help & Feedback",
-                      () {
-                        // Navigate to Help & Feedback Page
-                      },
+                    Column(
+                      children: [
+                        Text(
+                          'Wallpapers',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                        Container(
+                          height: 2,
+                          width: 60,
+                          color: Colors.pink,
+                        )
+                      ],
                     ),
                   ],
                 ),
-              ),
-
-              SizedBox(height: 16),
-
-              // Developer Button with Sparkle Animation
-              if (isLoggedIn)
-                Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
-                        size: Size(200, 100),
-                        painter: StarParticlePainter(
-                          numberOfParticles: 10,
-                          maxParticleSize: 8,
-                          particleColor: Colors.deepPurple.withAlpha(150),
-                          animationValue: _animationValue,
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (!isDeveloper) {
-                            setState(() {
-                              isDeveloper = true;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content:
-                                    Text("Application submitted successfully!"),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.deepPurple,
-                          backgroundColor: Colors.deepPurple,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          isDeveloper
-                              ? "Application Submitted"
-                              : "Apply for Developer",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                SizedBox(height: 15),
+                GridView.builder(
+                  padding: EdgeInsets.all(10),
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.6,
                   ),
+                  itemCount: wallpapers.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {},
+                      child: Container(
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage(wallpapers[index]),
+                            fit: BoxFit.cover,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-            ],
+                SizedBox(height: 20),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildMetricItem(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 32, color: Colors.blue),
-        SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 14)),
-      ],
-    );
-  }
-
-  Widget _buildOptionItem(IconData icon, String title, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(
-        title,
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      trailing: Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: onTap,
-    );
-  }
-}
-
-class StarParticlePainter extends CustomPainter {
-  final int numberOfParticles;
-  final double maxParticleSize;
-  final Color particleColor;
-  final double animationValue;
-
-  StarParticlePainter({
-    required this.numberOfParticles,
-    required this.maxParticleSize,
-    required this.particleColor,
-    required this.animationValue,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = particleColor;
-    final random = Random();
-
-    for (int i = 0; i < numberOfParticles; i++) {
-      final x = random.nextDouble() * size.width;
-      final y = random.nextDouble() * size.height;
-      final radius = random.nextDouble() * maxParticleSize;
-
-      _drawStar(canvas, paint, x, y, radius);
-    }
-  }
-
-  void _drawStar(
-      Canvas canvas, Paint paint, double x, double y, double radius) {
-    final path = Path();
-    final angle = pi / 5;
-
-    for (int i = 0; i < 10; i++) {
-      final r = (i % 2 == 0) ? radius : radius / 2;
-      final offsetX = x + r * cos(i * angle + animationValue * 2 * pi);
-      final offsetY = y + r * sin(i * angle + animationValue * 2 * pi);
-      if (i == 0) {
-        path.moveTo(offsetX, offsetY);
-      } else {
-        path.lineTo(offsetX, offsetY);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
+  void _pickImage() {
+    setState(() {
+      _imagePath =
+          "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Placeholder fixed
+    });
   }
 }

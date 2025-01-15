@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_wallpaper/screens/login_page.dart';
 import 'package:my_wallpaper/screens/profile_page.dart';
+import 'package:my_wallpaper/screens/registration_page.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart'; // Placeholder for the Home Page
 import 'package:firebase_core/firebase_core.dart';
