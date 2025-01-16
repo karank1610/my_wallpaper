@@ -24,7 +24,7 @@ class LoginPage extends StatelessWidget {
 
     // Validate email format
     final emailRegex =
-        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter a valid email address.")),
@@ -39,7 +39,6 @@ class LoginPage extends StatelessWidget {
         password: password,
       );
 
-<<<<<<< HEAD
       // Navigate to ProfilePage after successful login
       Navigator.pushReplacement(
         context,
@@ -50,11 +49,6 @@ class LoginPage extends StatelessWidget {
             },
           ),
         ),
-=======
-      // Success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login successful! Welcome back.")),
->>>>>>> bd53509da20207125046a8e55f4f0f57be382127
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,13 +130,9 @@ class LoginPage extends StatelessWidget {
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: "Email",
-<<<<<<< HEAD
                         labelStyle: const TextStyle(color: Colors.white70),
                         prefixIcon:
-                            const Icon(Icons.email, color: Colors.white),
-=======
-                        prefixIcon: const Icon(Icons.email),
->>>>>>> bd53509da20207125046a8e55f4f0f57be382127
+                        const Icon(Icons.email, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -156,12 +146,8 @@ class LoginPage extends StatelessWidget {
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: "Password",
-<<<<<<< HEAD
                         labelStyle: const TextStyle(color: Colors.white70),
                         prefixIcon: const Icon(Icons.lock, color: Colors.white),
-=======
-                        prefixIcon: const Icon(Icons.lock),
->>>>>>> bd53509da20207125046a8e55f4f0f57be382127
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
