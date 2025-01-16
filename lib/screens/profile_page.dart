@@ -69,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundImage: NetworkImage(_imagePath),
                         child: _imagePath.isEmpty
                             ? Icon(Icons.camera_alt,
-                                size: 40, color: Colors.white)
+                            size: 40, color: Colors.white)
                             : null,
                       ),
                     ),
@@ -157,7 +157,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _pickImage() {
     setState(() {
       _imagePath =
-          "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Placeholder fixed
+      "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Placeholder fixed
     });
   }
 }

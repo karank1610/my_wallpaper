@@ -129,7 +129,7 @@ class WallpaperPage extends StatelessWidget {
         title: Text(
           "$category Wallpapers",
           style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black,
       ),

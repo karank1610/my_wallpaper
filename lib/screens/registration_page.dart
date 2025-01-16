@@ -38,7 +38,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formSignupKey.currentState!.validate() && agreePersonalData) {
       try {
         final userCredential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
