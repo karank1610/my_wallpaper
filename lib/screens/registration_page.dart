@@ -38,7 +38,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formSignupKey.currentState!.validate() && agreePersonalData) {
       try {
         final userCredential =
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
@@ -238,6 +238,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: const Text(
                     'Sign Up',
                     style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    // Navigate to login page if the user already has an account
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  },
+                  child: const Text(
+                    'Already have an account? Log in',
+                    style: TextStyle(color: Colors.blue),
                   ),
                 ),
               ),

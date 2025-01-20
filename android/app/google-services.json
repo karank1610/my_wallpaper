@@ -1,13 +1,14 @@
 {
   "project_info": {
-    "project_number": "1015339334290",
-    "project_id": "wallpaper-store-3c0f5",
-    "storage_bucket": "wallpaper-store-3c0f5.firebasestorage.app"
+    "project_number": "538612664347",
+    "firebase_url": "https://mywallpaper-1550d-default-rtdb.firebaseio.com",
+    "project_id": "mywallpaper-1550d",
+    "storage_bucket": "mywallpaper-1550d.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1015339334290:android:035d2055411fa74fb4444b",
+        "mobilesdk_app_id": "1:538612664347:android:ea5b002d319b17e72cd0be",
         "android_client_info": {
           "package_name": "com.example.my_wallpaper"
         }
@@ -15,7 +16,26 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC2xVWLnU5mBjE06xF5jK48Oy1CPR6dK-4"
+          "current_key": "AIzaSyDlR3QU0S_FemwpCA_HiO73D-dzLp0ViEU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:538612664347:android:1429cb24b73ec4642cd0be",
+        "android_client_info": {
+          "package_name": "com.example.mywallpaper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlR3QU0S_FemwpCA_HiO73D-dzLp0ViEU"
         }
       ],
       "services": {

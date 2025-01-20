@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:my_wallpaper/screens/registration_page.dart';
 import 'profile_page.dart';
 
@@ -7,6 +8,7 @@ class LoginPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   LoginPage({super.key});
 
@@ -24,7 +26,7 @@ class LoginPage extends StatelessWidget {
 
     // Validate email format
     final emailRegex =
-    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter a valid email address.")),
@@ -170,6 +172,38 @@ class LoginPage extends StatelessWidget {
                       child: const Text(
                         "Login",
                         style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final GoogleSignInAccount? googleUser =
+                            await _googleSignIn.signIn();
+                        if (googleUser != null) {
+                          final GoogleSignInAuthentication googleAuth =
+                              await googleUser.authentication;
+                          final AuthCredential credential =
+                              GoogleAuthProvider.credential(
+                            accessToken: googleAuth.accessToken,
+                            idToken: googleAuth.idToken,
+                          );
+                          await _auth.signInWithCredential(credential);
+                        }
+                      },
+                      icon: Image.asset(
+                        "assets/googleLogo.png",
+                        height: 20,
+                      ),
+                      label: Text(
+                        "Sign in with Google",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 30),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ],

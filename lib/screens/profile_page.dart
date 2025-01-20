@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth package
 
 class ProfilePage extends StatefulWidget {
   final Function onNavigateToHome;
@@ -23,6 +24,29 @@ class _ProfilePageState extends State<ProfilePage> {
     'assets/wallpaper5.jpg',
   ];
 
+  // Firebase logout function
+  void _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+      print("User logged out");
+
+      // Show a success message after logout
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Successfully logged out!')),
+      );
+
+      // Navigate back to the Home page after logging out
+      widget.onNavigateToHome(); // Make sure this is called after the sign-out
+    } catch (e) {
+      print("Error logging out: $e");
+
+      // Show an error message if logout fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging out: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,16 +55,26 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.black,
         title: Text('Profile', style: TextStyle(color: Colors.white)),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_sharp),
+          icon: Icon(Icons.arrow_back_sharp, color: Colors.white),
           onPressed: () {
             widget.onNavigateToHome(); // Return to Home Page
           },
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () {
-              // Menu icon with no assigned event
+          PopupMenuButton<String>(
+            icon: Icon(Icons.menu, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _showLogoutConfirmation(); // Show logout confirmation
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Text('Logout'),
+                ),
+              ];
             },
           ),
         ],
@@ -69,7 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundImage: NetworkImage(_imagePath),
                         child: _imagePath.isEmpty
                             ? Icon(Icons.camera_alt,
-                            size: 40, color: Colors.white)
+                                size: 40, color: Colors.white)
                             : null,
                       ),
                     ),
@@ -157,7 +191,35 @@ class _ProfilePageState extends State<ProfilePage> {
   void _pickImage() {
     setState(() {
       _imagePath =
-      "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Placeholder fixed
+          "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Placeholder fixed
     });
+  }
+
+  // Show confirmation dialog before logging out
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to log out?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+                _logout(); // Ensure logout logic completes before navigation
+              },
+              child: Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

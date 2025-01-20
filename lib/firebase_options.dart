@@ -51,19 +51,21 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyC2xVWLnU5mBjE06xF5jK48Oy1CPR6dK-4',
-    appId: '1:1015339334290:android:035d2055411fa74fb4444b',
-    messagingSenderId: '1015339334290',
-    projectId: 'wallpaper-store-3c0f5',
-    storageBucket: 'wallpaper-store-3c0f5.firebasestorage.app',
+    apiKey: 'AIzaSyDlR3QU0S_FemwpCA_HiO73D-dzLp0ViEU',
+    appId: '1:538612664347:android:ea5b002d319b17e72cd0be',
+    messagingSenderId: '538612664347',
+    projectId: 'mywallpaper-1550d',
+    databaseURL: 'https://mywallpaper-1550d-default-rtdb.firebaseio.com',
+    storageBucket: 'mywallpaper-1550d.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBsqISfMi1FFNhiWWC5_g-bP53F2YLfLu8',
-    appId: '1:1015339334290:ios:e6ea5b10490095cab4444b',
-    messagingSenderId: '1015339334290',
-    projectId: 'wallpaper-store-3c0f5',
-    storageBucket: 'wallpaper-store-3c0f5.firebasestorage.app',
+    apiKey: 'AIzaSyCRnDlJupPe-1ImDQBccGceJqFNg8LMVv8',
+    appId: '1:538612664347:ios:7142fb870091f46a2cd0be',
+    messagingSenderId: '538612664347',
+    projectId: 'mywallpaper-1550d',
+    databaseURL: 'https://mywallpaper-1550d-default-rtdb.firebaseio.com',
+    storageBucket: 'mywallpaper-1550d.appspot.com',
     iosBundleId: 'com.example.myWallpaper',
   );
 

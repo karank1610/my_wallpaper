@@ -1,26 +1,32 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
-class WallpaperUploadForm extends StatefulWidget {
+class WallpaperUploadScreen extends StatefulWidget {
   @override
-  _WallpaperUploadFormState createState() => _WallpaperUploadFormState();
+  _WallpaperUploadScreenState createState() => _WallpaperUploadScreenState();
 }
 
-class _WallpaperUploadFormState extends State<WallpaperUploadForm> {
+class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _keywordsController = TextEditingController();
   XFile? _image;
+  String? _selectedCategory;
   bool _isLoading = false;
+  bool _isPremium = false;
 
-  // Firebase references
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  final List<String> _categories = [
+    'Nature',
+    'Cars',
+    'Abstract',
+    'Animals',
+    'Technology',
+    'Others'
+  ];
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -37,13 +43,10 @@ class _WallpaperUploadFormState extends State<WallpaperUploadForm> {
         _isLoading = true;
       });
 
-      print("Uploading wallpaper...");
-
       try {
         final user = FirebaseAuth.instance.currentUser;
 
         if (user == null) {
-          print("No user logged in");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Please log in to upload a wallpaper.')),
           );
@@ -53,18 +56,28 @@ class _WallpaperUploadFormState extends State<WallpaperUploadForm> {
           return;
         }
 
-        // Save wallpaper details to Firebase Realtime Database
-        final docRef =
-            FirebaseDatabase.instance.ref().child('wallpapers').push();
-        await docRef.set({
+        // Get Firebase Storage reference for the `new_wallpaper` folder
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('new_wallpapers')
+            .child('${DateTime.now().millisecondsSinceEpoch}_${_image!.name}');
+
+        // Upload the image to Firebase Storage
+        final uploadTask = storageRef.putFile(File(_image!.path));
+        final snapshot = await uploadTask.whenComplete(() {});
+        final imageUrl = await snapshot.ref.getDownloadURL();
+
+        // Upload wallpaper details to Realtime Database
+        final dbRef = FirebaseDatabase.instance.ref("wallpapers").push();
+        await dbRef.set({
           'name': _nameController.text.trim(),
           'keywords': _keywordsController.text.trim().split(','),
-          'imagePath': _image!.path,
+          'category': _selectedCategory,
+          'imageUrl': imageUrl, // Save the image URL instead of path
           'uploadedBy': user.uid,
-          'uploadedAt': ServerValue.timestamp,
+          'uploadedAt': DateTime.now().toIso8601String(),
+          'isPremium': _isPremium,
         });
-
-        print("Wallpaper uploaded successfully");
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Wallpaper uploaded successfully!')),
@@ -75,20 +88,23 @@ class _WallpaperUploadFormState extends State<WallpaperUploadForm> {
         _keywordsController.clear();
         setState(() {
           _image = null;
+          _selectedCategory = null;
+          _isPremium = false;
           _isLoading = false;
         });
+        Navigator.pop(context); // Close screen on success
       } catch (e) {
-        print("Error uploading wallpaper: $e");
+        print('Error uploading wallpaper: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Failed to upload wallpaper. Please try again.')),
+            content: Text('Failed to upload wallpaper. Please try again.'),
+          ),
         );
         setState(() {
           _isLoading = false;
         });
       }
     } else {
-      print("Form is not valid or image not selected.");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('Please complete the form and select an image.')),
@@ -98,157 +114,176 @@ class _WallpaperUploadFormState extends State<WallpaperUploadForm> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
+    return Scaffold(
+      appBar: AppBar(
         backgroundColor: Colors.black,
-        body: Stack(
-          children: [
-            // Slide-Up Bottom Sheet
-            DraggableScrollableSheet(
-              initialChildSize: 0.6,
-              minChildSize: 0.4,
-              maxChildSize: 1.0,
-              builder:
-                  (BuildContext context, ScrollController scrollController) {
-                return Container(
-                  padding: const EdgeInsets.all(16.0),
+        title: Text(
+          'Upload Wallpaper',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+      backgroundColor: Colors.black87,
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Credit Balance Display
+                Container(
+                  padding: EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
+                    color: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: ListView(
-                      controller: scrollController,
-                      children: [
-                        Center(
-                          child: Container(
-                            height: 5,
-                            width: 50,
-                            color: Colors.grey[600],
-                            margin: EdgeInsets.only(bottom: 20),
-                          ),
-                        ),
-                        // Image Picker
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: double.infinity,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.grey[600]!,
-                                width: 2,
-                              ),
-                            ),
-                            child: _image == null
-                                ? Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.add_a_photo,
-                                            size: 50, color: Colors.white),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          'Tap to select an image',
-                                          style: TextStyle(color: Colors.grey),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.file(
-                                      File(_image!.path),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-
-                        // Wallpaper Name Field
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: 'Wallpaper Name',
-                            labelStyle: TextStyle(color: Colors.grey),
-                            prefixIcon: Icon(Icons.edit, color: Colors.grey),
-                            filled: true,
-                            fillColor: Colors.grey[800],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          style: TextStyle(color: Colors.white),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a name';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 20),
-
-                        // Keywords Text Area
-                        TextFormField(
-                          controller: _keywordsController,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: 'Enter Keywords (comma-separated)',
-                            labelStyle: TextStyle(color: Colors.grey),
-                            prefixIcon: Icon(Icons.search, color: Colors.grey),
-                            filled: true,
-                            fillColor: Colors.grey[800],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          style: TextStyle(color: Colors.white),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter search keywords';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 30),
-
-                        // Submit Button
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _submitForm,
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 40, vertical: 15),
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? CircularProgressIndicator(color: Colors.white)
-                              : Text(
-                                  'Upload',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                      ],
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Credits Balance:',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                      Text(
+                        '10 Credits', // This will be dynamic based on user's actual credits
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+                SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.blueAccent,
+                        width: 1,
+                      ),
+                    ),
+                    child: _image == null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate,
+                                    size: 50, color: Colors.blueAccent),
+                                Text('Select an image'),
+                              ],
+                            ),
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(
+                              File(_image!.path),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Wallpaper Name',
+                    labelStyle: TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.black26,
+                  ),
+                  style: TextStyle(color: Colors.white),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a name';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Select Category',
+                    labelStyle: TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.black26,
+                  ),
+                  items: _categories
+                      .map((category) => DropdownMenuItem(
+                            value: category,
+                            child: Text(
+                              category,
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? 'Please select a category' : null,
+                ),
+                SizedBox(height: 20),
+                TextFormField(
+                  controller: _keywordsController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Enter Keywords (comma-separated)',
+                    labelStyle: TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.black26,
+                  ),
+                  style: TextStyle(color: Colors.white),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter keywords';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Premium Wallpaper?',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    Switch(
+                      value: _isPremium,
+                      onChanged: (value) {
+                        setState(() {
+                          _isPremium = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.blueAccent,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator()
+                      : Text(
+                          'Upload Wallpaper',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

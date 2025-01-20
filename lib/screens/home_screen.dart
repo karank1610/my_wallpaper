@@ -1,13 +1,14 @@
-import 'package:carousel_slider/carousel_options.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:my_wallpaper/screens/collection_page.dart';
-import 'package:my_wallpaper/screens/omg_page.dart';
+import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 import 'package:my_wallpaper/screens/profile_page.dart';
 import 'package:my_wallpaper/screens/registration_page.dart';
+import 'package:my_wallpaper/screens/wallpaper_upload_screen.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -15,43 +16,57 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final DatabaseReference _databaseRef =
+      FirebaseDatabase.instance.ref().child("wallpapers");
+  List<Map<String, dynamic>> wallpapers = [];
+  bool isLoading = true;
   int myCurrentIndex = 0;
-  List pages = const [
-    // HomeScreen(),
-    // OmgPage(),
-    // CollectionPage(),
-    // ProfilePage(),
-  ];
-  int _currentTabIndex = 0;
-  bool _isScrollingDown = false;
   ScrollController _scrollController = ScrollController();
+  TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> filteredWallpapers = [];
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      if (_scrollController.position.userScrollDirection ==
-          ScrollDirection.reverse) {
-        if (!_isScrollingDown) {
-          setState(() {
-            _isScrollingDown = true;
-          });
-        }
-      } else if (_scrollController.position.userScrollDirection ==
-          ScrollDirection.forward) {
-        if (_isScrollingDown) {
-          setState(() {
-            _isScrollingDown = false;
-          });
-        }
-      }
-    });
+    fetchWallpapers();
+    _searchController.addListener(_filterWallpapers);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> fetchWallpapers() async {
+    final List<Map<String, dynamic>> fetchedWallpapers = [];
+    final storageRef = FirebaseStorage.instance.ref().child("new_wallpapers");
+
+    try {
+      final result = await storageRef.listAll();
+      for (var item in result.items) {
+        final url = await item.getDownloadURL();
+        fetchedWallpapers.add({"imagePath": url, "name": item.name});
+      }
+
+      setState(() {
+        wallpapers = fetchedWallpapers;
+        filteredWallpapers = wallpapers;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching wallpapers: $e");
+    }
+  }
+
+  void _filterWallpapers() {
+    String query = _searchController.text.toLowerCase();
+    setState(() {
+      filteredWallpapers = wallpapers
+          .where((wallpaper) => wallpaper["name"].toLowerCase().contains(query))
+          .toList();
+    });
   }
 
   @override
@@ -81,173 +96,171 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            TabBar(
-              indicatorColor: Colors.white,
-              tabs: [
-                Tab(text: "Default"),
-                Tab(text: "Latest"),
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildWallpaperGrid("default"),
-                  _buildWallpaperGrid("latest"),
-                ],
+      body: Column(
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Search wallpapers...',
+                hintStyle: TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: Colors.white12,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25.0),
+                  borderSide: BorderSide.none,
+                ),
+                prefixIcon: Icon(Icons.search, color: Colors.white),
               ),
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        decoration: BoxDecoration(boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 25,
-              offset: const Offset(8, 20))
-        ]),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BottomNavigationBar(
-              backgroundColor: Colors.transparent,
-              selectedItemColor: Colors.redAccent,
-              unselectedItemColor: Colors.black,
-              currentIndex: myCurrentIndex,
-              onTap: (index) async {
-                setState(() {
-                  myCurrentIndex = index;
-                });
-
-                if (index == 3) {
-                  // Profile button tapped
-                  User? user = FirebaseAuth.instance.currentUser;
-
-                  if (user != null) {
-                    // User is logged in, navigate to ProfilePage
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfilePage(
-                          onNavigateToHome: () {
-                            setState(() {
-                              myCurrentIndex = 0; // Reset index to Home
-                            });
-                            Navigator.pop(context); // Close the ProfilePage
-                          },
+          ),
+          Expanded(
+            child: isLoading
+                ? Center(child: CircularProgressIndicator())
+                : filteredWallpapers.isEmpty
+                    ? Center(
+                        child: Text("No wallpapers available.",
+                            style: TextStyle(color: Colors.white)))
+                    : GridView.builder(
+                        controller: _scrollController,
+                        padding: EdgeInsets.all(8.0),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 8.0,
+                          mainAxisSpacing: 8.0,
+                          childAspectRatio: 0.7,
                         ),
+                        itemCount: filteredWallpapers.length,
+                        itemBuilder: (context, index) {
+                          final wallpaper = filteredWallpapers[index];
+                          String imagePath = wallpaper["imagePath"];
+
+                          return GestureDetector(
+                            onTap: () => _onWallpaperClick(imagePath),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8.0),
+                                image: DecorationImage(
+                                  image: NetworkImage(imagePath),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  } else {
-                    // User is not logged in, navigate to SignUpPage
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            SignUpScreen(), // Replace with your sign-up page
-                      ),
-                    );
-                  }
-                }
-              },
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.search), label: "Search"),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.upload), label: "Upload"),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline), label: "Profile"),
-              ]),
-        ),
+          ),
+        ],
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
-  Widget _buildWallpaperGrid(String type) {
-    return Column(
-      children: [
-        CarouselSlider(
-          options: CarouselOptions(
-            height: 200,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            viewportFraction: 0.9,
+  void _onWallpaperClick(String imagePath) {
+    if (imagePath.startsWith('/data')) {
+      imagePath = 'file://$imagePath';
+    }
+
+    if (imagePath.startsWith('http')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FullScreenWallpaper(
+            imageProvider: NetworkImage(imagePath),
           ),
-          items: ["New Arrivals", "Most Downloaded"].map((bannerText) {
-            return Builder(
-              builder: (BuildContext context) {
-                return Container(
-                  width: MediaQuery.of(context).size.width,
-                  margin: EdgeInsets.symmetric(horizontal: 5.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: Center(
-                    child: Text(
-                      bannerText,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          }).toList(),
         ),
-        Expanded(
-          child: Stack(
-            children: [
-              GridView.builder(
-                controller: _scrollController,
-                padding: EdgeInsets.only(
-                  left: 8.0,
-                  right: 8.0,
-                  top: 8.0,
-                  bottom:
-                      0.0, // Reduced padding to extend content below the navigation bar
-                ),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
-                ),
-                itemCount: 20, // Replace with dynamic count
-                itemBuilder: (context, index) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(8.0),
+      );
+    } else if (imagePath.startsWith('file://')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FullScreenWallpaper(
+            imageProvider:
+                FileImage(File(imagePath.replaceFirst('file://', ''))),
+          ),
+        ),
+      );
+    } else {
+      print("Invalid or unsupported image URI: $imagePath");
+    }
+  }
+
+  Widget _buildBottomNavigationBar(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      decoration: BoxDecoration(boxShadow: [
+        BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 25,
+            offset: const Offset(8, 20))
+      ]),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: BottomNavigationBar(
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.redAccent,
+            unselectedItemColor: Colors.black,
+            currentIndex: myCurrentIndex,
+            onTap: (index) async {
+              setState(() {
+                myCurrentIndex = index;
+              });
+
+              if (index == 1) {
+                User? user = FirebaseAuth.instance.currentUser;
+
+                if (user != null) {
+                  showDialog(
+                    context: context,
+                    builder: (_) => WallpaperUploadScreen(),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text("Please log in first to upload wallpapers."),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 2),
                     ),
-                    child: Center(
-                      child: Text(
-                        "Wallpaper $index",
-                        style: TextStyle(color: Colors.white),
+                  );
+                }
+              } else if (index == 2) {
+                User? user = FirebaseAuth.instance.currentUser;
+
+                if (user != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfilePage(
+                        onNavigateToHome: () {
+                          setState(() {
+                            myCurrentIndex = 0;
+                          });
+                        },
                       ),
                     ),
                   );
-                },
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 40.0,
-                  color: Colors.transparent, // Ensure no visual conflict
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SignUpScreen(),
+                    ),
+                  );
+                }
+              }
+            },
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.upload), label: "Upload"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline), label: "Profile"),
+            ]),
+      ),
     );
   }
 }
