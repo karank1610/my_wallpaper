@@ -13,7 +13,12 @@
           "package_name": "com.example.my_wallpaper"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "538612664347-kjpdeo6hj8dms05qe750ncha8hqjavc9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDlR3QU0S_FemwpCA_HiO73D-dzLp0ViEU"
@@ -21,7 +26,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "538612664347-kjpdeo6hj8dms05qe750ncha8hqjavc9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "538612664347-j3dil8tkpbf62ovlf4ru9q333c8knc7t.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myWallpaper"
+              }
+            }
+          ]
         }
       }
     },
@@ -32,7 +49,20 @@
           "package_name": "com.example.mywallpaper"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "538612664347-kph00t253l2lebohdu5ki58e5p8i9lm4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mywallpaper",
+            "certificate_hash": "24512bc6cbf2a22a705d0468be6a496e8732f069"
+          }
+        },
+        {
+          "client_id": "538612664347-kjpdeo6hj8dms05qe750ncha8hqjavc9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDlR3QU0S_FemwpCA_HiO73D-dzLp0ViEU"
@@ -40,7 +70,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "538612664347-kjpdeo6hj8dms05qe750ncha8hqjavc9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "538612664347-j3dil8tkpbf62ovlf4ru9q333c8knc7t.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myWallpaper"
+              }
+            }
+          ]
         }
       }
     }
