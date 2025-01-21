@@ -176,21 +176,71 @@ class LoginPage extends StatelessWidget {
                     ),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final GoogleSignInAccount? googleUser =
-                            await _googleSignIn.signIn();
-                        if (googleUser != null) {
-                          final GoogleSignInAuthentication googleAuth =
-                              await googleUser.authentication;
-                          final AuthCredential credential =
-                              GoogleAuthProvider.credential(
-                            accessToken: googleAuth.accessToken,
-                            idToken: googleAuth.idToken,
+                        try {
+                          // Start Google Sign-In process
+                          final GoogleSignInAccount? googleUser =
+                              await _googleSignIn.signIn();
+                          if (googleUser != null) {
+                            final GoogleSignInAuthentication googleAuth =
+                                await googleUser.authentication;
+
+                            // Create credentials for Firebase authentication
+                            final AuthCredential credential =
+                                GoogleAuthProvider.credential(
+                              accessToken: googleAuth.accessToken,
+                              idToken: googleAuth.idToken,
+                            );
+
+                            try {
+                              // Sign in to Firebase using the Google credentials
+                              await _auth.signInWithCredential(credential);
+
+                              // Show a success message
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        "Login successful! Welcome back.")),
+                              );
+
+                              // Navigate to ProfilePage after successful login
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProfilePage(
+                                    onNavigateToHome: () {
+                                      Navigator.pop(
+                                          context); // Close the ProfilePage
+                                    },
+                                  ),
+                                ),
+                              );
+                            } catch (e) {
+                              // Handle errors during Firebase authentication
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text("Firebase sign-in failed: $e")),
+                              );
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text("Google sign-in was canceled.")),
+                            );
+                          }
+                        } catch (e) {
+                          // Handle any errors during Google sign-in
+                          print("Error during Google Sign-In: $e");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(
+                                    "Google sign-in failed. Please try again.")),
                           );
-                          await _auth.signInWithCredential(credential);
                         }
                       },
                       icon: Image.asset(
-                        "assets/googleLogo.png",
+                        "assets/googleLogo.png", // Ensure this file is in the assets folder
                         height: 20,
                       ),
                       label: Text(
