@@ -47,7 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final result = await storageRef.listAll();
       for (var item in result.items) {
         final url = await item.getDownloadURL();
-        fetchedWallpapers.add({"imagePath": url, "name": item.name});
+
+        fetchedWallpapers.add({
+          "imagePath": url,
+          "name": item.name,
+        });
       }
 
       setState(() {
@@ -91,7 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.category, color: Colors.white),
             onPressed: () {
-              CollectionPage.showCategoryDialog(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CollectionPage(),
+                ),
+              );
             },
           ),
         ],
@@ -124,33 +133,37 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? Center(
                         child: Text("No wallpapers available.",
                             style: TextStyle(color: Colors.white)))
-                    : GridView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.all(8.0),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                          childAspectRatio: 0.7,
-                        ),
-                        itemCount: filteredWallpapers.length,
-                        itemBuilder: (context, index) {
-                          final wallpaper = filteredWallpapers[index];
-                          String imagePath = wallpaper["imagePath"];
+                    : RefreshIndicator(
+                        onRefresh: fetchWallpapers, // Triggers refresh
+                        child: GridView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.all(8.0),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8.0,
+                            mainAxisSpacing: 8.0,
+                            childAspectRatio: 0.7,
+                          ),
+                          itemCount: filteredWallpapers.length,
+                          itemBuilder: (context, index) {
+                            final wallpaper = filteredWallpapers[index];
+                            String imagePath = wallpaper["imagePath"];
 
-                          return GestureDetector(
-                            onTap: () => _onWallpaperClick(imagePath),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8.0),
-                                image: DecorationImage(
-                                  image: NetworkImage(imagePath),
-                                  fit: BoxFit.cover,
+                            return GestureDetector(
+                              onTap: () => _onWallpaperClick(imagePath),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  image: DecorationImage(
+                                    image: NetworkImage(imagePath),
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
           ),
         ],
@@ -169,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => FullScreenWallpaper(
-            imageProvider: NetworkImage(imagePath),
+            imagePath: imagePath,
           ),
         ),
       );
@@ -178,8 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => FullScreenWallpaper(
-            imageProvider:
-                FileImage(File(imagePath.replaceFirst('file://', ''))),
+            imagePath: imagePath,
           ),
         ),
       );

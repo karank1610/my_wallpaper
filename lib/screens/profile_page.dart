@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 
 class ProfilePage extends StatefulWidget {
   final Function onNavigateToHome;
@@ -20,14 +21,13 @@ class _ProfilePageState extends State<ProfilePage> {
   String _email = "guest@example.com";
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Map<String, dynamic>> wallpapers = [];
-  List<Map<String, dynamic>> filteredWallpapers = [];
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserDetails();
-    fetchUserWallpapers(); // Fetch wallpapers uploaded by the logged-in user
+    fetchUserWallpapers();
   }
 
   void _loadUserDetails() async {
@@ -37,7 +37,6 @@ class _ProfilePageState extends State<ProfilePage> {
         _email = user.email ?? "No Email";
       });
 
-      // Fetch additional user details from Firestore
       final userData = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -46,50 +45,42 @@ class _ProfilePageState extends State<ProfilePage> {
       if (userData.exists) {
         setState(() {
           _userName = userData['username'] ?? "No Name";
-          _imagePath =
-              "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png"; // Default image
         });
       }
     }
   }
 
   Future<void> fetchUserWallpapers() async {
-    final List<Map<String, dynamic>> fetchedWallpapers = [];
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Use the new FirebaseDatabase instance method with '.ref()'
     final wallpapersRef = FirebaseDatabase.instance.ref().child('wallpapers');
-
     try {
-      // Fetch wallpapers uploaded by the current user (based on user ID)
       final snapshot = await wallpapersRef
           .orderByChild('uploadedBy')
           .equalTo(user.uid)
-          .get(); // Use '.get()' instead of '.once()'
+          .get();
 
       if (snapshot.exists) {
         Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+        List<Map<String, dynamic>> fetchedWallpapers = [];
         data.forEach((key, value) {
           fetchedWallpapers.add({
-            "imagePath":
-                value['imageUrl'], // Firebase field name for the image URL
-            "name": value['name'], // Firebase field name for the wallpaper name
+            "imagePath": value['imageUrl'],
+            "name": value['name'],
           });
         });
-      }
 
-      setState(() {
-        wallpapers = fetchedWallpapers;
-        filteredWallpapers = wallpapers;
-        isLoading = false;
-      });
+        setState(() {
+          wallpapers = fetchedWallpapers;
+          isLoading = false;
+        });
+      }
     } catch (e) {
       print("Error fetching user wallpapers: $e");
     }
   }
 
-  // Firebase logout function
   void _logout() async {
     try {
       await _auth.signOut();
@@ -146,7 +137,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         actions: [
           PopupMenuButton<String>(
-            // Menu for logout
             icon: Icon(Icons.menu, color: Colors.white),
             onSelected: (value) {
               if (value == 'logout') {
@@ -164,114 +154,89 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 250,
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.black,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(height: 20),
+            Center(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: NetworkImage(_imagePath),
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              _userName,
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+            Text(
+              _email,
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: Column(
                 children: [
-                  Positioned(
-                    top: 40,
-                    left: MediaQuery.of(context).size.width / 2 - 50,
-                    child: GestureDetector(
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.purple,
-                        backgroundImage: NetworkImage(_imagePath),
-                      ),
-                    ),
+                  Text(
+                    'My Wallpapers',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
-                  Positioned(
-                    bottom: 20,
-                    left: 0,
-                    right: 0,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _userName,
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
-                        Text(
-                          _email,
-                          style: TextStyle(color: Colors.grey, fontSize: 14),
-                        ),
-                      ],
-                    ),
+                  Container(
+                    height: 2,
+                    width: 60,
+                    color: Colors.pink,
                   ),
                 ],
               ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildListDelegate(
-              [
-                SizedBox(height: 20),
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'My Wallpapers',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                      Container(
-                        height: 2,
-                        width: 60,
-                        color: Colors.pink,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 15),
-                isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : (wallpapers.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No wallpapers uploaded!',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          )
-                        : GridView.builder(
-                            padding: EdgeInsets.all(10),
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              childAspectRatio: 0.6,
-                            ),
-                            itemCount: wallpapers.length,
-                            itemBuilder: (context, index) {
-                              final wallpaper = wallpapers[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  // Handle wallpaper tap (e.g., open full-screen view)
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    image: DecorationImage(
-                                      image:
-                                          NetworkImage(wallpaper['imagePath']),
-                                      fit: BoxFit.cover,
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
+            SizedBox(height: 15),
+            isLoading
+                ? Center(child: CircularProgressIndicator())
+                : wallpapers.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No wallpapers uploaded!',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: EdgeInsets.all(10),
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 0.6,
+                        ),
+                        itemCount: wallpapers.length,
+                        itemBuilder: (context, index) {
+                          final wallpaper = wallpapers[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FullScreenWallpaper(
+                                    imagePath: wallpaper['imagePath'],
                                   ),
                                 ),
                               );
                             },
-                          )),
-              ],
-            ),
-          ),
-        ],
+                            child: Container(
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  image: NetworkImage(wallpaper['imagePath']),
+                                  fit: BoxFit.cover,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ],
+        ),
       ),
     );
   }
