@@ -78,41 +78,56 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     }
   }
 
-  Future<void> _handleDownload() async {
+  Future<void> _handleDownload(BuildContext context, String imageUrl) async {
     // Check and request storage permission
-    PermissionStatus status = await Permission.storage.request();
-    if (status.isGranted) {
-      try {
-        // Get the directory to save the wallpaper
-        Directory? appDocDir =
-            await getApplicationDocumentsDirectory(); // Get the correct directory
-        String filePath =
-            '${appDocDir.path}/wallpaper_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    if (Platform.isAndroid) {
+      PermissionStatus status = await Permission.storage.request();
 
-        // Create a reference to the storage file
-        final storageRef = FirebaseStorage.instance.refFromURL(imageUrl!);
-
-        // Download the file data from Firebase Storage
-        final data = await storageRef.getData();
-
-        // Save the downloaded data to a file
-        if (data != null) {
-          final file = File(filePath);
-          await file.writeAsBytes(data);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Wallpaper downloaded successfully')));
-        } else {
-          throw Exception("Failed to download file.");
-        }
-      } catch (e) {
-        print('Error downloading wallpaper: $e');
+      // For Android 11+ (API 30+), request manage external storage permission
+      if (status.isDenied) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to download wallpaper')));
+          SnackBar(content: Text('Storage permission denied')),
+        );
+        return;
       }
-    } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Storage permission denied')));
+    }
+
+    try {
+      // Get the reference to the file in Firebase Storage
+      final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
+
+      // Download file data
+      final data = await storageRef.getData();
+
+      if (data == null) {
+        throw Exception("Failed to download file.");
+      }
+
+      // Save to the public "Downloads" directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory(
+            '/storage/emulated/0/Download'); // Public downloads folder
+      } else {
+        directory = await getApplicationDocumentsDirectory(); // iOS fallback
+      }
+
+      String filePath =
+          '${directory.path}/wallpaper_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      File file = File(filePath);
+      await file.writeAsBytes(data);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Wallpaper downloaded to Downloads folder')),
+      );
+
+      print('File saved at: $filePath');
+    } catch (e) {
+      print('Error downloading wallpaper: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to download wallpaper')),
+      );
     }
   }
 
@@ -203,7 +218,7 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
                       SizedBox(height: 16),
                       IconButton(
                         icon: Icon(Icons.download, color: Colors.white),
-                        onPressed: _handleDownload,
+                        onPressed: () => _handleDownload(context, imageUrl!),
                       ),
                     ],
                   ),

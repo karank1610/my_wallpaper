@@ -249,7 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (context) => ProfilePage(
                         onNavigateToHome: () {
                           setState(() {
-                            myCurrentIndex = 0;
+                            myCurrentIndex =
+                                0; // Instantly update when back is pressed
                           });
                         },
                       ),
@@ -261,7 +262,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(
                       builder: (context) => SignUpScreen(),
                     ),
-                  );
+                  ).then((_) {
+                    setState(() {
+                      myCurrentIndex = 0; // Reset index after back navigation
+                    });
+                  });
                 }
               }
             },
