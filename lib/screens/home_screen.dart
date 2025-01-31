@@ -28,8 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    fetchWallpapers();
-    _searchController.addListener(_filterWallpapers);
+    fetchWallpapers().then((_) async {
+      await fetchWallpaperDetails();
+      _searchController.addListener(_filterWallpapers);
+    });
   }
 
   @override
@@ -64,12 +66,65 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> fetchWallpaperDetails() async {
+    try {
+      final databaseSnapshot = await _databaseRef.get();
+
+      if (databaseSnapshot.exists) {
+        final Map<dynamic, dynamic> wallpapersData =
+            databaseSnapshot.value as Map<dynamic, dynamic>;
+
+        for (var wallpaper in wallpapers) {
+          final imagePath = wallpaper["imagePath"];
+          final entry = wallpapersData.entries.firstWhere(
+            (entry) => entry.value["imageUrl"] == imagePath,
+            orElse: () => MapEntry("", {}),
+          );
+
+          if (entry.value != null) {
+            final name = entry.value["name"] as String?;
+            final category = entry.value["category"] as String?;
+            final keywords = entry.value["keywords"];
+
+            // Handle keywords as a List<Object?> or String?
+            String keywordsString = "";
+            if (keywords is List<Object?>) {
+              keywordsString = keywords
+                  .where((item) => item != null)
+                  .map((item) => item.toString())
+                  .join(", ");
+            } else if (keywords is String?) {
+              keywordsString = keywords ?? "";
+            }
+
+            // Update the wallpaper map with additional details
+            wallpaper["name"] = name ?? "Unnamed Wallpaper";
+            wallpaper["category"] = category ?? "Uncategorized";
+            wallpaper["keywords"] = keywordsString;
+          }
+        }
+
+        setState(() {
+          filteredWallpapers = wallpapers;
+        });
+      }
+    } catch (e) {
+      print("Error fetching wallpaper details: $e");
+    }
+  }
+
   void _filterWallpapers() {
     String query = _searchController.text.toLowerCase();
     setState(() {
-      filteredWallpapers = wallpapers
-          .where((wallpaper) => wallpaper["name"].toLowerCase().contains(query))
-          .toList();
+      filteredWallpapers = wallpapers.where((wallpaper) {
+        final name = wallpaper["name"].toString().toLowerCase();
+        final category = wallpaper["category"].toString().toLowerCase();
+        final keywords = wallpaper["keywords"].toString().toLowerCase();
+
+        return name.contains(query) ||
+            category.contains(query) ||
+            keywords.contains(query);
+      }).toList();
     });
   }
 

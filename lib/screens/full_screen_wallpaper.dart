@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:media_scanner/media_scanner.dart';
 
 class FullScreenWallpaper extends StatefulWidget {
   final String imagePath; // The image URL passed as an argument
@@ -81,12 +83,18 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
   Future<void> _handleDownload(BuildContext context, String imageUrl) async {
     // Check and request storage permission
     if (Platform.isAndroid) {
-      PermissionStatus status = await Permission.storage.request();
-
-      // For Android 11+ (API 30+), request manage external storage permission
-      if (status.isDenied) {
+      // Request READ_MEDIA_IMAGES permission (Android 13+)
+      if (await Permission.mediaLibrary.request().isDenied) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Storage permission denied')),
+          SnackBar(content: Text('Media library permission denied')),
+        );
+        return;
+      }
+
+      // Request MANAGE_EXTERNAL_STORAGE permission (Android 11+)
+      if (await Permission.manageExternalStorage.request().isDenied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Manage external storage permission denied')),
         );
         return;
       }
@@ -103,13 +111,18 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
         throw Exception("Failed to download file.");
       }
 
-      // Save to the public "Downloads" directory
+      // Save to the public "Pictures" directory
       Directory? directory;
       if (Platform.isAndroid) {
-        directory = Directory(
-            '/storage/emulated/0/Download'); // Public downloads folder
+        directory =
+            Directory('/storage/emulated/0/Pictures'); // Pictures folder
       } else {
         directory = await getApplicationDocumentsDirectory(); // iOS fallback
+      }
+
+      // Ensure the directory exists
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
       }
 
       String filePath =
@@ -117,9 +130,25 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
       File file = File(filePath);
       await file.writeAsBytes(data);
 
+      // Notify the media scanner on Android
+      if (Platform.isAndroid) {
+        try {
+          // Use the media_scanner package to scan the file
+          final String? scannedFilePath =
+              await MediaScanner.loadMedia(path: filePath);
+          if (scannedFilePath != null) {
+            print('File scanned and added to gallery: $scannedFilePath');
+          } else {
+            print('Failed to scan file: $filePath');
+          }
+        } catch (e) {
+          print('Error notifying media scanner: $e');
+        }
+      }
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Wallpaper downloaded to Downloads folder')),
+        SnackBar(content: Text('Wallpaper downloaded to Pictures folder')),
       );
 
       print('File saved at: $filePath');
