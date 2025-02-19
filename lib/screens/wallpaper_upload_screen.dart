@@ -56,7 +56,7 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
           return;
         }
 
-        // Get Firebase Storage reference for the `new_wallpaper` folder
+        // ✅ Fix: Using the same storage path as before
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('new_wallpapers')
@@ -67,16 +67,18 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
         final snapshot = await uploadTask.whenComplete(() {});
         final imageUrl = await snapshot.ref.getDownloadURL();
 
-        // Upload wallpaper details to Realtime Database
+        // ✅ Fix: Using the same database logic as before
         final dbRef = FirebaseDatabase.instance.ref("wallpapers").push();
         await dbRef.set({
           'name': _nameController.text.trim(),
           'keywords': _keywordsController.text.trim().split(','),
           'category': _selectedCategory,
-          'imageUrl': imageUrl, // Save the image URL instead of path
+          'imageUrl': imageUrl,
           'uploadedBy': user.uid,
           'uploadedAt': DateTime.now().toIso8601String(),
           'isPremium': _isPremium,
+          'likes': 0, // ✅ Adding like count as 0 initially
+          'downloads': 0, // ✅ Adding downloads count as 0 initially
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,39 +133,15 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Credit Balance Display
-                Container(
-                  padding: EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Credits Balance:',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                      Text(
-                        '10 Credits', // This will be dynamic based on user's actual credits
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20),
+                // 🖼️ Image Picker
                 GestureDetector(
                   onTap: _pickImage,
                   child: Container(
-                    height: 150,
+                    height: 180,
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
+                      color: Colors.grey[900],
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.blueAccent,
-                        width: 1,
-                      ),
+                      border: Border.all(color: Colors.blueAccent, width: 1),
                     ),
                     child: _image == null
                         ? Center(
@@ -172,7 +150,11 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                               children: [
                                 Icon(Icons.add_photo_alternate,
                                     size: 50, color: Colors.blueAccent),
-                                Text('Select an image'),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Select an Image',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
                               ],
                             ),
                           )
@@ -186,6 +168,8 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                   ),
                 ),
                 SizedBox(height: 20),
+
+                // 📝 Wallpaper Name
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -204,6 +188,8 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                   },
                 ),
                 SizedBox(height: 20),
+
+                // 📂 Category Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   decoration: InputDecoration(
@@ -213,13 +199,12 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                     filled: true,
                     fillColor: Colors.black26,
                   ),
+                  dropdownColor: Colors.black,
                   items: _categories
                       .map((category) => DropdownMenuItem(
                             value: category,
-                            child: Text(
-                              category,
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: Text(category,
+                                style: TextStyle(color: Colors.white)),
                           ))
                       .toList(),
                   onChanged: (value) {
@@ -231,6 +216,8 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                       value == null ? 'Please select a category' : null,
                 ),
                 SizedBox(height: 20),
+
+                // 🔑 Keywords
                 TextFormField(
                   controller: _keywordsController,
                   maxLines: 3,
@@ -250,13 +237,13 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                   },
                 ),
                 SizedBox(height: 20),
+
+                // 🌟 Premium Toggle
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Premium Wallpaper?',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    Text('Premium Wallpaper?',
+                        style: TextStyle(color: Colors.white)),
                     Switch(
                       value: _isPremium,
                       onChanged: (value) {
@@ -268,18 +255,19 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
                   ],
                 ),
                 SizedBox(height: 20),
+
+                // 🚀 Upload Button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.blueAccent,
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: _isLoading
                       ? CircularProgressIndicator()
-                      : Text(
-                          'Upload Wallpaper',
-                          style: TextStyle(fontSize: 18),
-                        ),
+                      : Text('Upload Wallpaper',
+                          style: TextStyle(fontSize: 18)),
                 ),
               ],
             ),

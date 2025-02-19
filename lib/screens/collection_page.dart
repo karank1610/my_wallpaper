@@ -1,15 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 
-class CollectionPage extends StatelessWidget {
-  // Define the main categories
-  final List<Map<String, String>> categories = [
-    {"title": "Community", "image": "assets/assets/community.jpg"},
-    {"title": "Curated", "image": "assets/assets/curated.jpg"},
-    {"title": "Popular", "image": "assets/assets/popular.jpg"},
-    {"title": "Trending", "image": "assets/assets/trending.jpg"},
-    {"title": "Nature", "image": "assets/assets/nature.jpeg"},
-    {"title": "Technology", "image": "assets/assets/technology.jpeg"},
-  ];
+class CollectionPage extends StatefulWidget {
+  @override
+  _CollectionPageState createState() => _CollectionPageState();
+}
+
+class _CollectionPageState extends State<CollectionPage> {
+  final DatabaseReference _databaseRef =
+      FirebaseDatabase.instance.ref().child("wallpapers");
+  List<Map<String, String>> categories = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCategories();
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      final snapshot = await _databaseRef.get();
+      if (snapshot.exists && snapshot.value is Map<dynamic, dynamic>) {
+        Set<String> uniqueCategories = {};
+        List<Map<String, String>> fetchedCategories = [];
+        final data = snapshot.value as Map<dynamic, dynamic>;
+
+        data.forEach((key, value) {
+          if (value is Map<dynamic, dynamic> &&
+              value.containsKey("category") &&
+              value.containsKey("imageUrl")) {
+            String category = value["category"].toString();
+            if (!uniqueCategories.contains(category)) {
+              uniqueCategories.add(category);
+              fetchedCategories.add({
+                "name": category,
+                "image": value["imageUrl"].toString(),
+              });
+            }
+          }
+        });
+
+        setState(() {
+          categories = fetchedCategories;
+          isLoading = false;
+        });
+      } else {
+        print("No categories found.");
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching categories: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,70 +73,62 @@ class CollectionPage extends StatelessWidget {
             letterSpacing: 1.2,
           ),
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.black, // Change AppBar color
         centerTitle: true,
         elevation: 5,
-      ),
-      backgroundColor: Colors.black,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // Two items per row
-            crossAxisSpacing: 16, // Spacing between columns
-            mainAxisSpacing: 16, // Spacing between rows
-            childAspectRatio: 0.75, // Taller card ratio
-          ),
-          itemCount: categories.length,
-          itemBuilder: (context, index) {
-            return _buildCategoryCard(
-              context,
-              categories[index]['title']!,
-              categories[index]['image']!,
-            );
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,
+              color: Colors.white), // Change back arrow color
+          onPressed: () {
+            Navigator.pop(context); // Fix back arrow functionality
           },
         ),
       ),
+      backgroundColor: Colors.black,
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  return _buildCategoryCard(
+                    context,
+                    categories[index]['name']!,
+                    categories[index]['image']!,
+                  );
+                },
+              ),
+            ),
     );
   }
 
-  // Widget to build each category card
-  Widget _buildCategoryCard(BuildContext context, String title, String image) {
+  Widget _buildCategoryCard(BuildContext context, String name, String image) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                WallpaperPage(category: title),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              const begin = Offset(0.0, 1.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
-
-              var tween =
-                  Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-              var offsetAnimation = animation.drive(tween);
-
-              return SlideTransition(
-                position: offsetAnimation,
-                child: child,
-              );
-            },
+          MaterialPageRoute(
+            builder: (context) => WallpaperPage(category: name),
           ),
         );
       },
       child: Stack(
         children: [
-          // Background Image
           Hero(
-            tag: title,
+            tag: name,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: AssetImage(image),
+                  image: NetworkImage(image),
                   fit: BoxFit.cover,
                 ),
                 boxShadow: [
@@ -100,21 +141,19 @@ class CollectionPage extends StatelessWidget {
               ),
             ),
           ),
-          // Gradient Overlay
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 colors: [
                   Colors.black.withOpacity(0.6),
-                  Colors.transparent,
+                  const Color.fromARGB(0, 213, 136, 136),
                 ],
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
               ),
             ),
           ),
-          // Title with Glass Effect
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -127,7 +166,7 @@ class CollectionPage extends StatelessWidget {
                 border: Border.all(color: Colors.white.withOpacity(0.2)),
               ),
               child: Text(
-                title,
+                name,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -150,18 +189,68 @@ class CollectionPage extends StatelessWidget {
   }
 }
 
-// Placeholder for the WallpaperPage
-class WallpaperPage extends StatelessWidget {
+class WallpaperPage extends StatefulWidget {
   final String category;
 
   const WallpaperPage({super.key, required this.category});
+
+  @override
+  _WallpaperPageState createState() => _WallpaperPageState();
+}
+
+class _WallpaperPageState extends State<WallpaperPage> {
+  final DatabaseReference _databaseRef =
+      FirebaseDatabase.instance.ref().child("wallpapers");
+
+  List<String> wallpapers = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchWallpapers();
+  }
+
+  Future<void> fetchWallpapers() async {
+    try {
+      final snapshot = await _databaseRef.get();
+      if (snapshot.exists && snapshot.value is Map<dynamic, dynamic>) {
+        List<String> fetchedWallpapers = [];
+        final data = snapshot.value as Map<dynamic, dynamic>;
+
+        data.forEach((key, value) {
+          if (value is Map<dynamic, dynamic> &&
+              value.containsKey("category") &&
+              value.containsKey("imageUrl") &&
+              value["category"].toString() == widget.category) {
+            fetchedWallpapers.add(value["imageUrl"].toString());
+          }
+        });
+
+        setState(() {
+          wallpapers = fetchedWallpapers;
+          isLoading = false;
+        });
+      } else {
+        print("No wallpapers found.");
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching wallpapers: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "$category Wallpapers",
+          "${widget.category} Wallpapers",
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -171,28 +260,66 @@ class WallpaperPage extends StatelessWidget {
         backgroundColor: Colors.black,
         centerTitle: true,
         elevation: 5,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,
+              color: Colors.white), // Change back arrow color
+          onPressed: () {
+            Navigator.pop(context); // Fix back arrow functionality
+          },
+        ),
       ),
       backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Hero(
-              tag: category,
-              child: const Icon(
-                Icons.wallpaper,
-                color: Colors.white,
-                size: 100,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "Wallpapers will be displayed here.",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontStyle: FontStyle.italic,
-              ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : wallpapers.isEmpty
+              ? Center(
+                  child: Text(
+                    "No wallpapers found for ${widget.category}.",
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: wallpapers.length,
+                    itemBuilder: (context, index) {
+                      return _buildWallpaperCard(wallpapers[index]);
+                    },
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildWallpaperCard(String imageUrl) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to FullScreenWallpaper when tapped
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FullScreenWallpaper(imagePath: imageUrl),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          image: DecorationImage(
+            image: NetworkImage(imageUrl),
+            fit: BoxFit.cover,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              offset: const Offset(0, 6),
+              blurRadius: 10,
             ),
           ],
         ),

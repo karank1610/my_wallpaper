@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 import 'package:my_wallpaper/screens/home_screen.dart';
+import 'package:my_wallpaper/screens/settings.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback onNavigateToHome;
@@ -16,11 +17,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   String _imagePath =
       "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
   String _userName = "Guest";
   String _email = "guest@example.com";
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Map<String, dynamic>> wallpapers = [];
   bool isLoading = true;
 
@@ -92,12 +95,9 @@ class _ProfilePageState extends State<ProfilePage> {
         SnackBar(content: Text('Successfully logged out!')),
       );
 
-      // Navigate back to home and remove all previous routes
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-            builder: (context) =>
-                HomeScreen()), // Replace with your actual home page widget
+        MaterialPageRoute(builder: (context) => HomeScreen()),
         (Route<dynamic> route) => false,
       );
     } catch (e) {
@@ -142,6 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       },
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.black,
@@ -154,35 +155,62 @@ class _ProfilePageState extends State<ProfilePage> {
             },
           ),
           actions: [
-            PopupMenuButton<String>(
+            IconButton(
               icon: Icon(Icons.menu, color: Colors.white),
-              onSelected: (value) {
-                if (value == 'logout') _showLogoutConfirmation();
+              onPressed: () {
+                _scaffoldKey.currentState?.openEndDrawer();
               },
-              itemBuilder: (BuildContext context) => [
-                PopupMenuItem<String>(value: 'logout', child: Text('Logout')),
-              ],
             ),
           ],
+        ),
+        endDrawer: Drawer(
+          backgroundColor: Colors.black,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(color: Colors.black),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // CircleAvatar(
+                    //   radius: 30,
+                    //   backgroundImage: NetworkImage(_imagePath),
+                    // ),
+                    SizedBox(height: 10),
+                    Text("My Wallpaper",
+                        style: TextStyle(color: Colors.white, fontSize: 22)),
+                    Text("Exclusive Wallpapers",
+                        style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  ],
+                ),
+              ),
+              _buildDrawerItem(Icons.settings, "Settings", () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingsPage()),
+                );
+              }),
+              _buildDrawerItem(
+                  Icons.exit_to_app, "Logout", _showLogoutConfirmation),
+            ],
+          ),
         ),
         body: SingleChildScrollView(
           child: Column(
             children: [
               SizedBox(height: 20),
               CircleAvatar(
-                  radius: 50, backgroundImage: NetworkImage(_imagePath)),
+                radius: 50,
+                backgroundImage: NetworkImage(_imagePath),
+              ),
               SizedBox(height: 10),
               Text(_userName,
                   style: TextStyle(color: Colors.white, fontSize: 18)),
               Text(_email, style: TextStyle(color: Colors.grey, fontSize: 14)),
               SizedBox(height: 20),
-              Column(
-                children: [
-                  Text('My Wallpapers',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
-                  Container(height: 2, width: 60, color: Colors.pink),
-                ],
-              ),
+              Text('My Wallpapers',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
               SizedBox(height: 15),
               isLoading
                   ? Center(child: CircularProgressIndicator())
@@ -221,7 +249,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   image: DecorationImage(
-                                    image: NetworkImage(wallpaper['imagePath']),
+                                    image: NetworkImage(
+                                        wallpapers[index]['imagePath']),
                                     fit: BoxFit.cover,
                                   ),
                                   borderRadius: BorderRadius.circular(10),
@@ -234,6 +263,14 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDrawerItem(IconData icon, String text, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(text, style: TextStyle(color: Colors.white, fontSize: 16)),
+      onTap: onTap,
     );
   }
 }

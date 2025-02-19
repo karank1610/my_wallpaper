@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:media_scanner/media_scanner.dart';
+import 'package:share_plus/share_plus.dart';
 
 class FullScreenWallpaper extends StatefulWidget {
-  final String imagePath; // The image URL passed as an argument
+  final String imagePath;
 
   FullScreenWallpaper({required this.imagePath});
 
@@ -20,9 +22,11 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
   String? wallpaperName;
   String? wallpaperSize;
   String? imageUrl;
-  int? likesCount;
-  int? commentsCount;
+  int likesCount = 0;
+  bool isLiked = false;
   bool isLoading = true;
+  bool isPremium = false; // Flag for premium wallpapers
+  String? wallpaperKey;
 
   @override
   void initState() {
@@ -30,7 +34,6 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     _fetchWallpaperDetails();
   }
 
-  // Fetch wallpaper details from Firebase
   Future<void> _fetchWallpaperDetails() async {
     try {
       DatabaseReference wallpaperRef =
@@ -44,11 +47,10 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
 
         wallpapersData.forEach((key, value) async {
           if (value['imageUrl'] == widget.imagePath) {
-            setState(() {
-              wallpaperName = value['name'] ?? 'No Name';
-              likesCount = value['likes'] ?? 0;
-              commentsCount = value['comments'] ?? 0;
-            });
+            wallpaperKey = key;
+            wallpaperName = value['name'] ?? 'No Name';
+            isPremium = value['isPremium'] ?? false; // Check premium status
+            likesCount = value['likes'] ?? 0;
 
             final storageRef =
                 FirebaseStorage.instance.refFromURL(value['imageUrl']);
@@ -56,6 +58,8 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
 
             final metadata = await storageRef.getMetadata();
             wallpaperSize = _formatFileSize(metadata.size ?? 0);
+
+            _checkUserLikeStatus();
 
             setState(() {
               isLoading = false;
@@ -80,47 +84,96 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     }
   }
 
-  Future<void> _handleDownload(BuildContext context, String imageUrl) async {
-    // Check and request storage permission
-    if (Platform.isAndroid) {
-      // Request READ_MEDIA_IMAGES permission (Android 13+)
-      if (await Permission.mediaLibrary.request().isDenied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Media library permission denied')),
-        );
-        return;
-      }
+  void _checkUserLikeStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && wallpaperKey != null) {
+      DatabaseReference likesRef = FirebaseDatabase.instance
+          .ref()
+          .child('wallpapers')
+          .child(wallpaperKey!)
+          .child('likedBy');
 
-      // Request MANAGE_EXTERNAL_STORAGE permission (Android 11+)
-      if (await Permission.manageExternalStorage.request().isDenied) {
+      final snapshot = await likesRef.child(user.uid).get();
+      setState(() {
+        isLiked = snapshot.exists;
+      });
+    }
+  }
+
+  Future<void> _handleLike() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You must be logged in to like wallpapers')),
+      );
+      return;
+    }
+
+    try {
+      DatabaseReference wallpaperRef = FirebaseDatabase.instance
+          .ref()
+          .child('wallpapers')
+          .child(wallpaperKey!);
+
+      DatabaseReference likesRef =
+          wallpaperRef.child('likedBy').child(user.uid);
+
+      if (isLiked) {
+        await likesRef.remove();
+        await wallpaperRef
+            .update({'likes': (likesCount - 1).clamp(0, double.infinity)});
+        setState(() {
+          isLiked = false;
+          likesCount = (likesCount - 1).clamp(0, double.infinity).toInt();
+        });
+      } else {
+        await likesRef.set(true);
+        await wallpaperRef.update({'likes': likesCount + 1});
+        setState(() {
+          isLiked = true;
+          likesCount += 1;
+        });
+      }
+    } catch (e) {
+      print("Error updating like count: $e");
+    }
+  }
+
+  Future<void> _handleDownload(BuildContext context, String imageUrl) async {
+    if (isPremium) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('This is a premium wallpaper. Download not allowed.')),
+      );
+      return;
+    }
+
+    if (Platform.isAndroid) {
+      if (await Permission.mediaLibrary.request().isDenied ||
+          await Permission.manageExternalStorage.request().isDenied) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Manage external storage permission denied')),
+          SnackBar(content: Text('Storage permission denied')),
         );
         return;
       }
     }
 
     try {
-      // Get the reference to the file in Firebase Storage
       final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
-
-      // Download file data
       final data = await storageRef.getData();
 
       if (data == null) {
         throw Exception("Failed to download file.");
       }
 
-      // Save to the public "Pictures" directory
       Directory? directory;
       if (Platform.isAndroid) {
-        directory =
-            Directory('/storage/emulated/0/Pictures'); // Pictures folder
+        directory = Directory('/storage/emulated/0/Pictures');
       } else {
-        directory = await getApplicationDocumentsDirectory(); // iOS fallback
+        directory = await getApplicationDocumentsDirectory();
       }
 
-      // Ensure the directory exists
       if (!await directory.exists()) {
         await directory.create(recursive: true);
       }
@@ -130,23 +183,18 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
       File file = File(filePath);
       await file.writeAsBytes(data);
 
-      // Notify the media scanner on Android
       if (Platform.isAndroid) {
         try {
-          // Use the media_scanner package to scan the file
           final String? scannedFilePath =
               await MediaScanner.loadMedia(path: filePath);
-          if (scannedFilePath != null) {
-            print('File scanned and added to gallery: $scannedFilePath');
-          } else {
-            print('Failed to scan file: $filePath');
-          }
+          print(scannedFilePath != null
+              ? 'File scanned: $scannedFilePath'
+              : 'Failed to scan file');
         } catch (e) {
           print('Error notifying media scanner: $e');
         }
       }
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Wallpaper downloaded to Pictures folder')),
       );
@@ -160,6 +208,19 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     }
   }
 
+  void _handleShare() async {
+    if (imageUrl != null) {
+      await Share.share(
+        'Check out this awesome wallpaper: $imageUrl',
+        subject: 'Awesome Wallpaper!',
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to share wallpaper')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,14 +229,12 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
           ? Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                // Full-screen wallpaper
                 Positioned.fill(
                   child: Image.network(
                     imageUrl!,
                     fit: BoxFit.cover,
                   ),
                 ),
-                // Icons and details overlay
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -215,34 +274,24 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
                     ),
                   ),
                 ),
-                // Action icons (Like, Share, Download)
                 Positioned(
                   right: 16,
                   bottom: 60,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       IconButton(
-                        icon: Icon(Icons.thumb_up, color: Colors.white),
-                        onPressed: () {},
+                        icon: Icon(
+                          isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                          color: Colors.white,
+                        ),
+                        onPressed: _handleLike,
                       ),
-                      Text(
-                        '${likesCount ?? 0}',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      SizedBox(height: 16),
-                      IconButton(
-                        icon: Icon(Icons.comment, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                      Text(
-                        '${commentsCount ?? 0}',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      Text('$likesCount',
+                          style: TextStyle(color: Colors.white)),
                       SizedBox(height: 16),
                       IconButton(
                         icon: Icon(Icons.share, color: Colors.white),
-                        onPressed: () {},
+                        onPressed: _handleShare,
                       ),
                       SizedBox(height: 16),
                       IconButton(
