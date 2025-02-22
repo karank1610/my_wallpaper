@@ -224,6 +224,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(_email, style: TextStyle(color: Colors.grey, fontSize: 14)),
                 SizedBox(height: 20),
                 Text('My Wallpapers', style: TextStyle(color: Colors.white, fontSize: 16)),
+                Container(height: 3, width: 100, color: Colors.pink),
                 SizedBox(height: 15),
                 isLoading
                     ? Center(child: CircularProgressIndicator())
