@@ -202,7 +202,8 @@ class _WallpaperPageState extends State<WallpaperPage> {
   final DatabaseReference _databaseRef =
       FirebaseDatabase.instance.ref().child("wallpapers");
 
-  List<String> wallpapers = [];
+  //List<String> wallpapers = [];
+  List<Map<String, dynamic>> wallpapers = [];
   bool isLoading = true;
 
   @override
@@ -210,40 +211,43 @@ class _WallpaperPageState extends State<WallpaperPage> {
     super.initState();
     fetchWallpapers();
   }
-
   Future<void> fetchWallpapers() async {
-    try {
-      final snapshot = await _databaseRef.get();
-      if (snapshot.exists && snapshot.value is Map<dynamic, dynamic>) {
-        List<String> fetchedWallpapers = [];
-        final data = snapshot.value as Map<dynamic, dynamic>;
+  try {
+    final snapshot = await _databaseRef.get();
+    if (snapshot.exists && snapshot.value is Map<dynamic, dynamic>) {
+      List<Map<String, dynamic>> fetchedWallpapers = [];
+      final data = snapshot.value as Map<dynamic, dynamic>;
 
-        data.forEach((key, value) {
-          if (value is Map<dynamic, dynamic> &&
-              value.containsKey("category") &&
-              value.containsKey("imageUrl") &&
-              value["category"].toString() == widget.category) {
-            fetchedWallpapers.add(value["imageUrl"].toString());
-          }
-        });
+      data.forEach((key, value) {
+        if (value is Map<dynamic, dynamic> &&
+            value.containsKey("category") &&
+            value.containsKey("imageUrl") &&
+            value["category"].toString() == widget.category) {
+          fetchedWallpapers.add({
+            "imageUrl": value["imageUrl"].toString(),
+            "isPremium": value["isPremium"] ?? false, // Fetch premium flag
+          });
+        }
+      });
 
-        setState(() {
-          wallpapers = fetchedWallpapers;
-          isLoading = false;
-        });
-      } else {
-        print("No wallpapers found.");
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      print("Error fetching wallpapers: $e");
+      setState(() {
+        wallpapers = fetchedWallpapers;
+        isLoading = false;
+      });
+    } else {
+      print("No wallpapers found.");
       setState(() {
         isLoading = false;
       });
     }
+  } catch (e) {
+    print("Error fetching wallpapers: $e");
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -296,34 +300,58 @@ class _WallpaperPageState extends State<WallpaperPage> {
                 ),
     );
   }
-
-  Widget _buildWallpaperCard(String imageUrl) {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to FullScreenWallpaper when tapped
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => FullScreenWallpaper(imagePath: imageUrl),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          image: DecorationImage(
-            image: NetworkImage(imageUrl),
-            fit: BoxFit.cover,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              offset: const Offset(0, 6),
-              blurRadius: 10,
-            ),
-          ],
+  Widget _buildWallpaperCard(Map<String, dynamic> wallpaper) {
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              FullScreenWallpaper(imagePath: wallpaper["imageUrl"]),
         ),
-      ),
-    );
-  }
+      );
+    },
+    child: Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            image: DecorationImage(
+              image: NetworkImage(wallpaper["imageUrl"]),
+              fit: BoxFit.cover,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                offset: const Offset(0, 6),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+        ),
+        if (wallpaper["isPremium"] == true)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
+                ),
+              ),
+              child: const Icon(
+                Icons.star,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
 }

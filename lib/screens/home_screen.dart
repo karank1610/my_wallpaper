@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -16,8 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DatabaseReference _databaseRef =
-      FirebaseDatabase.instance.ref().child("wallpapers");
+  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref().child("wallpapers");
   List<Map<String, dynamic>> wallpapers = [];
   bool isLoading = true;
   int myCurrentIndex = 0;
@@ -61,6 +58,8 @@ class _HomeScreenState extends State<HomeScreen> {
         filteredWallpapers = wallpapers;
         isLoading = false;
       });
+      // Fetch wallpaper details to get premium info after fetching wallpapers
+    await fetchWallpaperDetails();
     } catch (e) {
       print("Error fetching wallpapers: $e");
     }
@@ -71,8 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final databaseSnapshot = await _databaseRef.get();
 
       if (databaseSnapshot.exists) {
-        final Map<dynamic, dynamic> wallpapersData =
-            databaseSnapshot.value as Map<dynamic, dynamic>;
+        final Map<dynamic, dynamic> wallpapersData = databaseSnapshot.value as Map<dynamic, dynamic>;
 
         for (var wallpaper in wallpapers) {
           final imagePath = wallpaper["imagePath"];
@@ -85,22 +83,19 @@ class _HomeScreenState extends State<HomeScreen> {
             final name = entry.value["name"] as String?;
             final category = entry.value["category"] as String?;
             final keywords = entry.value["keywords"];
+            final isPremium = entry.value["isPremium"] ?? false;
 
-            // Handle keywords as a List<Object?> or String?
             String keywordsString = "";
             if (keywords is List<Object?>) {
-              keywordsString = keywords
-                  .where((item) => item != null)
-                  .map((item) => item.toString())
-                  .join(", ");
+              keywordsString = keywords.where((item) => item != null).map((item) => item.toString()).join(", ");
             } else if (keywords is String?) {
               keywordsString = keywords ?? "";
             }
 
-            // Update the wallpaper map with additional details
             wallpaper["name"] = name ?? "Unnamed Wallpaper";
             wallpaper["category"] = category ?? "Uncategorized";
             wallpaper["keywords"] = keywordsString;
+            wallpaper["isPremium"] = isPremium;
           }
         }
 
@@ -121,9 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final category = wallpaper["category"].toString().toLowerCase();
         final keywords = wallpaper["keywords"].toString().toLowerCase();
 
-        return name.contains(query) ||
-            category.contains(query) ||
-            keywords.contains(query);
+        return name.contains(query) || category.contains(query) || keywords.contains(query);
       }).toList();
     });
   }
@@ -143,8 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         title: Text(
           "MyWallpaper",
-          style: TextStyle(
-              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -163,8 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: TextField(
               controller: _searchController,
               style: TextStyle(color: Colors.white),
@@ -185,16 +176,13 @@ class _HomeScreenState extends State<HomeScreen> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
                 : filteredWallpapers.isEmpty
-                    ? Center(
-                        child: Text("No wallpapers available.",
-                            style: TextStyle(color: Colors.white)))
+                    ? Center(child: Text("No wallpapers available.", style: TextStyle(color: Colors.white)))
                     : RefreshIndicator(
-                        onRefresh: fetchWallpapers, // Triggers refresh
+                        onRefresh: fetchWallpapers,
                         child: GridView.builder(
                           controller: _scrollController,
                           padding: EdgeInsets.all(8.0),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 8.0,
                             mainAxisSpacing: 8.0,
@@ -207,14 +195,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             return GestureDetector(
                               onTap: () => _onWallpaperClick(imagePath),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  image: DecorationImage(
-                                    image: NetworkImage(imagePath),
-                                    fit: BoxFit.cover,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      image: DecorationImage(
+                                        image: NetworkImage(imagePath),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  if (wallpaper["isPremium"] == true)
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Container(
+                                        
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange,
+                                          borderRadius: BorderRadius.only(
+                                            topRight: Radius.circular(10),
+                                            bottomLeft: Radius.circular(10),
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.all(8),
+                                        child: Icon(
+                                          Icons.star,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             );
                           },
@@ -232,27 +245,14 @@ class _HomeScreenState extends State<HomeScreen> {
       imagePath = 'file://$imagePath';
     }
 
-    if (imagePath.startsWith('http')) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FullScreenWallpaper(
-            imagePath: imagePath,
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullScreenWallpaper(
+          imagePath: imagePath,
         ),
-      );
-    } else if (imagePath.startsWith('file://')) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FullScreenWallpaper(
-            imagePath: imagePath,
-          ),
-        ),
-      );
-    } else {
-      print("Invalid or unsupported image URI: $imagePath");
-    }
+      ),
+    );
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
@@ -287,8 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content:
-                          Text("Please log in first to upload wallpapers."),
+                      content: Text("Please log in first to upload wallpapers."),
                       behavior: SnackBarBehavior.floating,
                       duration: Duration(seconds: 2),
                     ),
@@ -304,8 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (context) => ProfilePage(
                         onNavigateToHome: () {
                           setState(() {
-                            myCurrentIndex =
-                                0; // Instantly update when back is pressed
+                            myCurrentIndex = 0;
                           });
                         },
                       ),
@@ -319,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ).then((_) {
                     setState(() {
-                      myCurrentIndex = 0; // Reset index after back navigation
+                      myCurrentIndex = 0;
                     });
                   });
                 }
@@ -327,10 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.upload), label: "Upload"),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline), label: "Profile"),
+              BottomNavigationBarItem(icon: Icon(Icons.upload), label: "Upload"),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Profile"),
             ]),
       ),
     );

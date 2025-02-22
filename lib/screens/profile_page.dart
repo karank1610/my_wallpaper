@@ -2,6 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_wallpaper/screens/Edit_profile_page.dart';
 import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 import 'package:my_wallpaper/screens/home_screen.dart';
 import 'package:my_wallpaper/screens/settings.dart';
@@ -9,8 +10,7 @@ import 'package:my_wallpaper/screens/settings.dart';
 class ProfilePage extends StatefulWidget {
   final VoidCallback onNavigateToHome;
 
-  const ProfilePage({Key? key, required this.onNavigateToHome})
-      : super(key: key);
+  const ProfilePage({Key? key, required this.onNavigateToHome}) : super(key: key);
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -20,8 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String _imagePath =
-      "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
+  String _imagePath = "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
   String _userName = "Guest";
   String _email = "guest@example.com";
   List<Map<String, dynamic>> wallpapers = [];
@@ -34,7 +33,8 @@ class _ProfilePageState extends State<ProfilePage> {
     fetchUserWallpapers();
   }
 
-  void _loadUserDetails() async {
+  //  Load User Details from Firestore
+  Future<void> _loadUserDetails() async {
     final user = _auth.currentUser;
     if (user != null) {
       setState(() {
@@ -54,16 +54,14 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  //  Fetch Wallpapers from Firebase Realtime Database
   Future<void> fetchUserWallpapers() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
     final wallpapersRef = FirebaseDatabase.instance.ref().child('wallpapers');
     try {
-      final snapshot = await wallpapersRef
-          .orderByChild('uploadedBy')
-          .equalTo(user.uid)
-          .get();
+      final snapshot = await wallpapersRef.orderByChild('uploadedBy').equalTo(user.uid).get();
 
       if (snapshot.exists) {
         Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
@@ -72,6 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
           fetchedWallpapers.add({
             "imagePath": value['imageUrl'],
             "name": value['name'],
+            "isPremium": value['isPremium'] ?? false,
           });
         });
 
@@ -88,6 +87,16 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //  Pull-to-Refresh Functionality
+  Future<void> _refreshPage() async {
+    setState(() {
+      isLoading = true;
+    });
+    await _loadUserDetails();
+    await fetchUserWallpapers();
+  }
+
+  //  Logout Function
   void _logout() async {
     try {
       await _auth.signOut();
@@ -163,6 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
+
         endDrawer: Drawer(
           backgroundColor: Colors.black,
           child: ListView(
@@ -173,93 +183,118 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // CircleAvatar(
-                    //   radius: 30,
-                    //   backgroundImage: NetworkImage(_imagePath),
-                    // ),
                     SizedBox(height: 10),
-                    Text("My Wallpaper",
-                        style: TextStyle(color: Colors.white, fontSize: 22)),
-                    Text("Exclusive Wallpapers",
-                        style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    Text("My Wallpaper", style: TextStyle(color: Colors.white, fontSize: 22)),
+                    Text("Exclusive Wallpapers", style: TextStyle(color: Colors.grey, fontSize: 14)),
                   ],
                 ),
               ),
+              _buildDrawerItem(Icons.person, "Edit Profile", () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EditProfilePage()),
+                );
+              }),
               _buildDrawerItem(Icons.settings, "Settings", () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SettingsPage()),
                 );
               }),
-              _buildDrawerItem(
-                  Icons.exit_to_app, "Logout", _showLogoutConfirmation),
+              _buildDrawerItem(Icons.exit_to_app, "Logout", _showLogoutConfirmation),
             ],
           ),
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              SizedBox(height: 20),
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: NetworkImage(_imagePath),
-              ),
-              SizedBox(height: 10),
-              Text(_userName,
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
-              Text(_email, style: TextStyle(color: Colors.grey, fontSize: 14)),
-              SizedBox(height: 20),
-              Text('My Wallpapers',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              SizedBox(height: 15),
-              isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : wallpapers.isEmpty
-                      ? Padding(
-                          padding: EdgeInsets.symmetric(vertical: 50),
-                          child: Text('No wallpapers uploaded!',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 16)),
-                        )
-                      : GridView.builder(
-                          padding: EdgeInsets.all(10),
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 0.6,
-                          ),
-                          itemCount: wallpapers.length,
-                          itemBuilder: (context, index) {
-                            final wallpaper = wallpapers[index];
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => FullScreenWallpaper(
-                                      imagePath: wallpaper['imagePath'],
+
+        body: RefreshIndicator(
+          onRefresh: _refreshPage,
+          color: const Color.fromARGB(204, 163, 56, 233),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage: NetworkImage(_imagePath),
+                ),
+                SizedBox(height: 10),
+                Text(_userName, style: TextStyle(color: Colors.white, fontSize: 18)),
+                Text(_email, style: TextStyle(color: Colors.grey, fontSize: 14)),
+                SizedBox(height: 20),
+                Text('My Wallpapers', style: TextStyle(color: Colors.white, fontSize: 16)),
+                SizedBox(height: 15),
+                isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : wallpapers.isEmpty
+                        ? Padding(
+                            padding: EdgeInsets.symmetric(vertical: 50),
+                            child: Text('No wallpapers uploaded!',
+                                style: TextStyle(color: Colors.grey, fontSize: 16)),
+                          )
+                        : GridView.builder(
+                            padding: EdgeInsets.all(10),
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.6,
+                            ),
+                            itemCount: wallpapers.length,
+                            itemBuilder: (context, index) {
+                              final wallpaper = wallpapers[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => FullScreenWallpaper(
+                                        imagePath: wallpaper['imagePath'],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(
-                                        wallpapers[index]['imagePath']),
-                                    fit: BoxFit.cover,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
+                                  );
+                                },
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        image: DecorationImage(
+                                          image: NetworkImage(wallpaper['imagePath']),
+                                          fit: BoxFit.cover,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    if (wallpaper['isPremium'])
+                                      Positioned(
+                                        top: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange,
+                                            borderRadius: BorderRadius.only(
+                                              topRight: Radius.circular(10),
+                                              bottomLeft: Radius.circular(10),
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.star,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-            ],
+                              );
+                            },
+                          ),
+              ],
+            ),
           ),
         ),
       ),
