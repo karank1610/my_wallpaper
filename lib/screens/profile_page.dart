@@ -596,7 +596,7 @@ class _ProfilePageState extends State<ProfilePage> {
         await ref.child(wallpaperKey).update({
           'name': name,
           'category': category,
-          'keywords': keywords, // ✅ Fixed: Now passing List<String>
+          'keywords': keywords, 
           'isPremium': isPremium,
         });
 
