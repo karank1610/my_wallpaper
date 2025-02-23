@@ -194,6 +194,19 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
         }
       }
 
+      // ✅ **Increment the download count in Firebase**
+      if (wallpaperKey != null) {
+        DatabaseReference wallpaperRef = FirebaseDatabase.instance
+            .ref()
+            .child('wallpapers')
+            .child(wallpaperKey!);
+
+        final snapshot = await wallpaperRef.child('downloads').get();
+        int currentDownloads = snapshot.exists ? snapshot.value as int : 0;
+
+        await wallpaperRef.update({'downloads': currentDownloads + 1});
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Wallpaper downloaded to Pictures folder')),
       );
