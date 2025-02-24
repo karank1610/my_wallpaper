@@ -234,7 +234,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 SizedBox(height: 20),
                 Text('My Wallpapers',
                     style: TextStyle(color: Colors.white, fontSize: 16)),
-                SizedBox(height: 15),
+                Container(
+                  height: 3,
+                  width: 100,
+                  color: Colors.pink,
+                ),
                 isLoading
                     ? Center(child: CircularProgressIndicator())
                     : wallpapers.isEmpty
@@ -466,94 +470,99 @@ class _ProfilePageState extends State<ProfilePage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
+      isScrollControlled:
+          true, // Makes bottom sheet expand properly with keyboard
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return Padding(
-              padding: EdgeInsets.all(15),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Edit Wallpaper",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
-
-                  _buildTextField(nameController, "Wallpaper Name"),
-
-                  // ✅ Fixed Category Dropdown
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: DropdownButtonFormField<String>(
-                      value: selectedCategory,
-                      dropdownColor: Colors.black,
-                      decoration: InputDecoration(
-                        labelText: "Select Category",
-                        labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.purple)),
+              padding: EdgeInsets.only(
+                left: 15,
+                right: 15,
+                top: 15,
+                bottom: MediaQuery.of(context).viewInsets.bottom +
+                    15, // Push up when keyboard appears
+              ),
+              child: SingleChildScrollView(
+                // Prevents keyboard from overlapping fields
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("Edit Wallpaper",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
+                    SizedBox(height: 10),
+                    _buildTextField(nameController, "Wallpaper Name"),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        dropdownColor: Colors.black,
+                        decoration: InputDecoration(
+                          labelText: "Select Category",
+                          labelStyle: TextStyle(color: Colors.grey),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.purple)),
+                        ),
+                        style: TextStyle(color: Colors.white),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedCategory = newValue!;
+                          });
+                        },
+                        items: categories.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value,
+                                style: TextStyle(color: Colors.white)),
+                          );
+                        }).toList(),
                       ),
-                      style: TextStyle(color: Colors.white),
-                      onChanged: (newValue) {
+                    ),
+                    _buildTextField(
+                        keywordController, "Keywords (comma-separated)"),
+                    SwitchListTile(
+                      title: Text("Premium Wallpaper",
+                          style: TextStyle(color: Colors.white)),
+                      value: isPremium,
+                      onChanged: (value) {
                         setState(() {
-                          selectedCategory = newValue!;
+                          isPremium = value;
                         });
                       },
-                      items: categories.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value,
-                              style: TextStyle(color: Colors.white)),
+                    ),
+                    SizedBox(height: 15),
+                    ElevatedButton(
+                      onPressed: () {
+                        updateWallpaperDetails(
+                          wallpaper['imagePath'],
+                          nameController.text,
+                          selectedCategory,
+                          keywordController.text
+                              .split(',')
+                              .map((e) => e.trim())
+                              .where((e) => e.isNotEmpty)
+                              .toList(),
+                          isPremium,
                         );
-                      }).toList(),
+                        Navigator.pop(context);
+                      },
+                      child: Text("Save Changes"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white, // White text color
+                      ),
                     ),
-                  ),
-
-                  // ✅ Fixed Keywords Text Field
-                  _buildTextField(
-                      keywordController, "Keywords (comma-separated)"),
-
-                  // ✅ Premium Toggle
-                  SwitchListTile(
-                    title: Text("Premium Wallpaper",
-                        style: TextStyle(color: Colors.white)),
-                    value: isPremium,
-                    onChanged: (value) {
-                      setState(() {
-                        isPremium = value;
-                      });
-                    },
-                  ),
-
-                  SizedBox(height: 15),
-                  ElevatedButton(
-                    onPressed: () {
-                      updateWallpaperDetails(
-                        wallpaper['imagePath'],
-                        nameController.text,
-                        selectedCategory,
-                        keywordController.text
-                            .split(',')
-                            .map((e) => e.trim())
-                            .where((e) => e.isNotEmpty)
-                            .toList(),
-                        isPremium,
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: Text("Save Changes"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -596,7 +605,7 @@ class _ProfilePageState extends State<ProfilePage> {
         await ref.child(wallpaperKey).update({
           'name': name,
           'category': category,
-          'keywords': keywords, 
+          'keywords': keywords,
           'isPremium': isPremium,
         });
 
