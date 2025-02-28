@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -24,7 +25,32 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  void _login(BuildContext context) async {
+  Future<void> _checkAndAddCredits(User user) async {
+    final userDoc =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userData = await userDoc.get();
+
+    if (!userData.exists || !userData.data()!.containsKey('credits')) {
+      if (!userData.exists) {
+        await userDoc.set({
+          'username': "User", // Set default if it's a new user
+          'email': user.email,
+          'credits': 10,
+        });
+      } else {
+        String username = userData.data()?['username'] ?? "User";
+        await userDoc.set({
+          'username': username, // Ensure username remains the same
+        }, SetOptions(merge: true));
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You received 10 credits!")),
+      );
+    }
+  }
+
+  Future<void> _login(BuildContext context) async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
@@ -46,10 +72,13 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       _toggleLoading(true);
-      await _auth.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      await _checkAndAddCredits(userCredential.user!);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -59,9 +88,6 @@ class _LoginPageState extends State<LoginPage> {
             },
           ),
         ),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login successful! Welcome back.")),
       );
     } catch (e) {
       String errorMessage = 'An error occurred. Please try again later.';
@@ -104,10 +130,9 @@ class _LoginPageState extends State<LoginPage> {
           idToken: googleAuth.idToken,
         );
 
-        await _auth.signInWithCredential(credential);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login successful! Welcome back.")),
-        );
+        final userCredential = await _auth.signInWithCredential(credential);
+        await _checkAndAddCredits(userCredential.user!);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -247,19 +272,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SignUpScreen()),
-                      );
-                    },
-                    child: const Text(
-                      "Don't have an account? Register here",
-                      style: TextStyle(color: Colors.blueAccent),
                     ),
                   ),
                 ],

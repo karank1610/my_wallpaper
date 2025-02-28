@@ -43,19 +43,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
           password: _passwordController.text.trim(),
         );
 
-        // Store additional user info in Firestore
-        final userId = userCredential.user!.uid;
-        await FirebaseFirestore.instance.collection('users').doc(userId).set({
-          'username': _usernameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'interests': selectedInterests.toList(),
-        });
+        // Ensure the user is created
+        final user = userCredential.user;
+        if (user != null) {
+          final userId = user.uid;
+          final username = _usernameController.text.trim();
 
-        // Navigate to the login page after successful sign-up
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
-        );
+          await FirebaseFirestore.instance.collection('users').doc(userId).set({
+            'username': username, // Ensure username is not empty
+            'email': _emailController.text.trim(),
+            'interests': selectedInterests.toList(),
+          }).then((_) {
+            print('User data stored successfully');
+          }).catchError((error) {
+            print('Error storing user data: $error');
+          });
+
+          // Navigate to login page after successful sign-up
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User creation failed.')),
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
@@ -64,8 +77,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Please agree to the terms and select at least one interest.')),
+          content: Text(
+              'Please agree to the terms and select at least one interest.'),
+        ),
       );
     }
   }

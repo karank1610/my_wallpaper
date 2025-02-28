@@ -7,6 +7,7 @@ import 'package:my_wallpaper/screens/Edit_profile_page.dart';
 import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 import 'package:my_wallpaper/screens/home_screen.dart';
 import 'package:my_wallpaper/screens/settings.dart';
+import 'rewarded_ad_helper.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback onNavigateToHome;
@@ -19,6 +20,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final RewardedAdHelper adHelper = RewardedAdHelper();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -32,6 +34,13 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    adHelper.loadRewardedAd();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (adHelper.shouldShowAd() && adHelper.isAdLoaded) {
+        // ✅ Check if ad is ready
+        adHelper.showRewardedAd(context);
+      }
+    });
     _loadUserDetails();
     fetchUserWallpapers();
   }
@@ -42,19 +51,58 @@ class _ProfilePageState extends State<ProfilePage> {
     if (user != null) {
       setState(() {
         _email = user.email ?? "No Email";
+        _imagePath =
+            user.photoURL ?? _imagePath; // Set profile image if available
       });
 
-      final userData = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userData = await userDoc.get();
 
       if (userData.exists) {
+        Map<String, dynamic>? data = userData.data();
+
+        // 🔹 Ensure username exists
+        String username = data?['username'] ?? user.displayName ?? "User";
+        int credits = data?['credits'] ?? 10; // Default 10 credits if missing
+
         setState(() {
-          _userName = userData['username'] ?? "No Name";
+          _userName = username;
+        });
+
+        // 🔹 If username or credits are missing, update Firestore
+        if (!data!.containsKey('username') || !data.containsKey('credits')) {
+          await userDoc.set({
+            'username': username,
+            'credits': credits,
+          }, SetOptions(merge: true));
+        }
+      } else {
+        // 🔹 Create user document if it doesn't exist
+        await userDoc.set({
+          'username': user.displayName ?? "User",
+          'email': user.email,
+          'credits': 10, // New users get 10 credits
+        });
+
+        setState(() {
+          _userName = user.displayName ?? "User";
         });
       }
     }
+  }
+
+// Fetch and display user credits
+  Future<int> _getUserCredits() async {
+    final user = _auth.currentUser;
+    if (user == null) return 0;
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    return userDoc.exists ? (userDoc.data()?['credits'] ?? 0) : 0;
   }
 
   //  Fetch Wallpapers from Firebase Realtime Database
@@ -231,7 +279,53 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: TextStyle(color: Colors.white, fontSize: 18)),
                 Text(_email,
                     style: TextStyle(color: Colors.grey, fontSize: 14)),
-                SizedBox(height: 20),
+                FutureBuilder<int>(
+                  future: _getUserCredits(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator(); // Show loading indicator
+                    }
+                    return Padding(
+                      padding:
+                          EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                      child: Card(
+                        color: Colors.grey[900], // Dark card for contrast
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(15),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Available Credits",
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                              ),
+                              Row(
+                                children: [
+                                  Icon(Icons.monetization_on,
+                                      color: Colors.orange, size: 20),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    "${snapshot.data}",
+                                    style: TextStyle(
+                                      color: Colors.orange,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 10),
                 Text('My Wallpapers',
                     style: TextStyle(color: Colors.white, fontSize: 16)),
                 Container(
@@ -244,9 +338,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     : wallpapers.isEmpty
                         ? Padding(
                             padding: EdgeInsets.symmetric(vertical: 50),
-                            child: Text('No wallpapers uploaded!',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 16)),
+                            child: Center(
+                              child: Text('No wallpapers uploaded!',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 16)),
+                            ),
                           )
                         : GridView.builder(
                             padding: EdgeInsets.all(10),
@@ -260,7 +356,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               childAspectRatio: 0.6,
                             ),
                             itemCount: wallpapers.length,
-                            // Inside itemBuilder of GridView.builder
                             itemBuilder: (context, index) {
                               final wallpaper = wallpapers[index];
 

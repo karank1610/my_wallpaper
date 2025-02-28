@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:my_wallpaper/screens/rewarded_ad_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:media_scanner/media_scanner.dart';
@@ -18,6 +21,7 @@ class FullScreenWallpaper extends StatefulWidget {
 }
 
 class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
+  final RewardedAdHelper adHelper = RewardedAdHelper();
   String? wallpaperName;
   String? wallpaperSize;
   String? imageUrl;
@@ -26,11 +30,62 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
   bool isLoading = true;
   bool isPremium = false; // Flag for premium wallpapers
   String? wallpaperKey;
+  int userCredits = 0;
+  bool isUploadedByUser = false;
+
+  void _loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: "ca-app-pub-3940256099942544/5224354917",
+      request: AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
+          _rewardedAd = ad;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          _rewardedAd = null;
+          print('Failed to load a rewarded ad: $error');
+        },
+      ),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    adHelper.loadRewardedAd();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (adHelper.shouldShowAd() && adHelper.isAdLoaded) {
+        // ✅ Check if ad is ready
+        adHelper.showRewardedAd(context);
+      }
+    });
+    _loadRewardedAd();
+    _fetchUserCredits(); // Ensure credits are fetched at startup
     _fetchWallpaperDetails();
+  }
+
+  Future<void> _fetchUserCredits() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists && userDoc.data()!.containsKey('credits')) {
+          setState(() {
+            userCredits = userDoc['credits'];
+          });
+        } else {
+          setState(() {
+            userCredits = 0; // Default to 0 if credits field is missing
+          });
+        }
+      } catch (e) {
+        print("Error fetching user credits: $e");
+      }
+    }
   }
 
   Future<void> _fetchWallpaperDetails() async {
@@ -48,8 +103,9 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
           if (value['imageUrl'] == widget.imagePath) {
             wallpaperKey = key;
             wallpaperName = value['name'] ?? 'No Name';
-            isPremium = value['isPremium'] ?? false; // Check premium status
+            isPremium = value['isPremium'] ?? false;
             likesCount = value['likes'] ?? 0;
+            String uploadedBy = value['uploadedBy'] ?? "";
 
             final storageRef =
                 FirebaseStorage.instance.refFromURL(value['imageUrl']);
@@ -57,6 +113,13 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
 
             final metadata = await storageRef.getMetadata();
             wallpaperSize = _formatFileSize(metadata.size ?? 0);
+
+            final user = FirebaseAuth.instance.currentUser;
+            if (user != null) {
+              isUploadedByUser = user.uid == uploadedBy;
+
+              await _fetchUserCredits(); // Fetch credits for logged-in user
+            }
 
             _checkUserLikeStatus();
 
@@ -138,16 +201,100 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     }
   }
 
-  Future<void> _handleDownload(BuildContext context, String imageUrl) async {
-    if (isPremium) {
+  void _showAdDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Not enough credits"),
+        content: Text("Watch an ad to earn 10 credits?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showRewardedAd();
+            },
+            child: Text("Watch Ad"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  RewardedAd? _rewardedAd;
+  void _showRewardedAd() {
+    if (_rewardedAd != null) {
+      _rewardedAd!.show(
+        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) async {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            final userDoc =
+                FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+            // Add 10 credits
+            await userDoc.update({'credits': userCredits + 10});
+
+            setState(() {
+              userCredits += 10;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('You earned 10 credits!')),
+            );
+          }
+        },
+      );
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('This is a premium wallpaper. Download not allowed.')),
+        SnackBar(content: Text('Ad not available. Try again later.')),
+      );
+    }
+  }
+
+  Future<void> _handleDownload(BuildContext context, String imageUrl) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You must be logged in to download wallpapers')),
       );
       return;
     }
 
+    // Prevent downloading own premium wallpaper
+    if (isUploadedByUser) {
+      return;
+    }
+
+    // 🔹 Fetch latest user credits before checking
+    await _fetchUserCredits();
+    // Check if the wallpaper is premium and user has enough credits
+    if (isPremium) {
+      if (userCredits < 10) {
+        // Show a dialog asking the user to watch an ad for credits
+        _showAdDialog(context);
+        return;
+      }
+      // Deduct credits
+      final userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await userDocRef.update({'credits': userCredits - 10});
+
+      setState(() {
+        userCredits -= 10;
+      });
+
+      print('Credits deducted! Remaining credits: $userCredits');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('10 credits deducted for premium wallpaper download.')),
+      );
+    }
+
+    // Proceed with the download
     if (Platform.isAndroid) {
       if (await Permission.mediaLibrary.request().isDenied ||
           await Permission.manageExternalStorage.request().isDenied) {
@@ -184,17 +331,13 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
 
       if (Platform.isAndroid) {
         try {
-          final String? scannedFilePath =
-              await MediaScanner.loadMedia(path: filePath);
-          print(scannedFilePath != null
-              ? 'File scanned: $scannedFilePath'
-              : 'Failed to scan file');
+          await MediaScanner.loadMedia(path: filePath);
         } catch (e) {
           print('Error notifying media scanner: $e');
         }
       }
 
-      // ✅ **Increment the download count in Firebase**
+      // Increment the download count
       if (wallpaperKey != null) {
         DatabaseReference wallpaperRef = FirebaseDatabase.instance
             .ref()
@@ -208,10 +351,8 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Wallpaper downloaded to Pictures folder')),
+        SnackBar(content: Text('Wallpaper downloaded successfully!')),
       );
-
-      print('File saved at: $filePath');
     } catch (e) {
       print('Error downloading wallpaper: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -306,10 +447,13 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
                         onPressed: _handleShare,
                       ),
                       SizedBox(height: 16),
-                      IconButton(
-                        icon: Icon(Icons.download, color: Colors.white),
-                        onPressed: () => _handleDownload(context, imageUrl!),
-                      ),
+                      isUploadedByUser
+                          ? SizedBox() // Hide button if uploaded by user
+                          : IconButton(
+                              icon: Icon(Icons.download, color: Colors.white),
+                              onPressed: () =>
+                                  _handleDownload(context, imageUrl!),
+                            ),
                     ],
                   ),
                 ),
