@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+import 'custom_ad_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -14,25 +17,58 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref().child("wallpapers");
+  final DatabaseReference _databaseRef =
+      FirebaseDatabase.instance.ref().child("wallpapers");
   List<Map<String, dynamic>> wallpapers = [];
   bool isLoading = true;
   int myCurrentIndex = 0;
   ScrollController _scrollController = ScrollController();
   TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredWallpapers = [];
+  Timer? _adTimer;
 
   @override
   void initState() {
     super.initState();
+    _startAdTimer();
     fetchWallpapers().then((_) async {
       await fetchWallpaperDetails();
       _searchController.addListener(_filterWallpapers);
     });
   }
 
+  // custom ads
+  void _startAdTimer() {
+    _scheduleNextAd();
+  }
+
+  void _scheduleNextAd() {
+    int delayInSeconds = Random().nextInt(60) + 30; // Between 60-120 sec
+    _adTimer = Timer(Duration(seconds: delayInSeconds), () {
+      _showCustomAd();
+      _scheduleNextAd(); // Schedule the next ad
+    });
+  }
+
+  void _showCustomAd() {
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => CustomAdScreen(
+          onAdComplete: () {
+            debugPrint("Ad Completed. Resuming App...");
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _adTimer?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -59,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoading = false;
       });
       // Fetch wallpaper details to get premium info after fetching wallpapers
-    await fetchWallpaperDetails();
+      await fetchWallpaperDetails();
     } catch (e) {
       print("Error fetching wallpapers: $e");
     }
@@ -70,7 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final databaseSnapshot = await _databaseRef.get();
 
       if (databaseSnapshot.exists) {
-        final Map<dynamic, dynamic> wallpapersData = databaseSnapshot.value as Map<dynamic, dynamic>;
+        final Map<dynamic, dynamic> wallpapersData =
+            databaseSnapshot.value as Map<dynamic, dynamic>;
 
         for (var wallpaper in wallpapers) {
           final imagePath = wallpaper["imagePath"];
@@ -87,7 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
             String keywordsString = "";
             if (keywords is List<Object?>) {
-              keywordsString = keywords.where((item) => item != null).map((item) => item.toString()).join(", ");
+              keywordsString = keywords
+                  .where((item) => item != null)
+                  .map((item) => item.toString())
+                  .join(", ");
             } else if (keywords is String?) {
               keywordsString = keywords ?? "";
             }
@@ -116,7 +156,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final category = wallpaper["category"].toString().toLowerCase();
         final keywords = wallpaper["keywords"].toString().toLowerCase();
 
-        return name.contains(query) || category.contains(query) || keywords.contains(query);
+        return name.contains(query) ||
+            category.contains(query) ||
+            keywords.contains(query);
       }).toList();
     });
   }
@@ -136,7 +178,8 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         title: Text(
           "MyWallpaper",
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -155,7 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: TextField(
               controller: _searchController,
               style: TextStyle(color: Colors.white),
@@ -176,13 +220,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
                 : filteredWallpapers.isEmpty
-                    ? Center(child: Text("No wallpapers available.", style: TextStyle(color: Colors.white)))
+                    ? Center(
+                        child: Text("No wallpapers available.",
+                            style: TextStyle(color: Colors.white)))
                     : RefreshIndicator(
                         onRefresh: fetchWallpapers,
                         child: GridView.builder(
                           controller: _scrollController,
                           padding: EdgeInsets.all(8.0),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 8.0,
                             mainAxisSpacing: 8.0,
@@ -211,7 +258,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       top: 0,
                                       right: 0,
                                       child: Container(
-                                        
                                         decoration: BoxDecoration(
                                           color: Colors.orange,
                                           borderRadius: BorderRadius.only(
@@ -287,7 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text("Please log in first to upload wallpapers."),
+                      content:
+                          Text("Please log in first to upload wallpapers."),
                       behavior: SnackBarBehavior.floating,
                       duration: Duration(seconds: 2),
                     ),
@@ -325,8 +372,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-              BottomNavigationBarItem(icon: Icon(Icons.upload), label: "Upload"),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Profile"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.upload), label: "Upload"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline), label: "Profile"),
             ]),
       ),
     );

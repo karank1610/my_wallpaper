@@ -54,8 +54,8 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     super.initState();
     adHelper.loadRewardedAd();
     Future.delayed(const Duration(seconds: 3), () {
-      if (adHelper.shouldShowAd() && adHelper.isAdLoaded) {
-        // ✅ Check if ad is ready
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null && adHelper.shouldShowAd() && adHelper.isAdLoaded) {
         adHelper.showRewardedAd(context);
       }
     });

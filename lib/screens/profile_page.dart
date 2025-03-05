@@ -200,7 +200,8 @@ class _ProfilePageState extends State<ProfilePage> {
     return PopScope(
       canPop: true,
       onPopInvoked: (didPop) {
-        if (didPop) {
+        if (didPop && mounted) {
+          // ✅ Check if widget is mounted
           widget.onNavigateToHome();
         }
       },
@@ -213,8 +214,11 @@ class _ProfilePageState extends State<ProfilePage> {
           leading: IconButton(
             icon: Icon(Icons.arrow_back_sharp, color: Colors.white),
             onPressed: () {
+              if (mounted) {
+                // ✅ Check before calling
+                widget.onNavigateToHome();
+              }
               Navigator.of(context).pop();
-              widget.onNavigateToHome();
             },
           ),
           actions: [
