@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_wallpaper/screens/subscription_page.dart';
+
 import 'custom_ad_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -32,10 +35,78 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _startAdTimer();
     fetchWallpapers().then((_) async {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+    _checkAndShowSubscriptionPopup();
+  });
       await fetchWallpaperDetails();
       _searchController.addListener(_filterWallpapers);
     });
   }
+
+  // subscription popup
+
+  void _checkAndShowSubscriptionPopup() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user == null) return; // No popup for non-logged-in users
+
+  DocumentReference userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+  DocumentSnapshot userDoc = await userRef.get();
+
+  bool hasSubscription = false;
+
+  if (userDoc.exists) {
+    Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
+
+    // Check if subscriptionActive field exists
+    if (userData != null && userData.containsKey('subscriptionActive')) {
+      hasSubscription = userData['subscriptionActive'] == true;
+    } else {
+      // If field is missing, add subscriptionActive: false
+      await userRef.update({'subscriptionActive': false});
+    }
+  } else {
+    // If user document doesn't exist, create one with subscriptionActive: false
+    await userRef.set({'subscriptionActive': false}, SetOptions(merge: true));
+  }
+
+  if (!hasSubscription) {
+    _showSubscriptionPopup();
+  }
+}
+
+void _showSubscriptionPopup() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Text("Go Premium!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset("assets/subscription_promo.png", height: 150),
+            SizedBox(height: 10),
+            Text("Unlock exclusive wallpapers & remove ads.", style: TextStyle(color: Colors.white)),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close popup
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionPage())); // Navigate to pricing
+              },
+              child: Text("Subscribe Now"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Dismiss popup
+              child: Text("Not Now", style: TextStyle(color: Colors.grey)),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   // custom ads
   void _startAdTimer() {
