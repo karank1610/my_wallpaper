@@ -268,30 +268,47 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
       return;
     }
 
-    // 🔹 Fetch latest user credits before checking
-    await _fetchUserCredits();
-    // Check if the wallpaper is premium and user has enough credits
-    if (isPremium) {
-      if (userCredits < 10) {
-        // Show a dialog asking the user to watch an ad for credits
-        _showAdDialog(context);
-        return;
-      }
-      // Deduct credits
-      final userDocRef =
-          FirebaseFirestore.instance.collection('users').doc(user.uid);
-      await userDocRef.update({'credits': userCredits - 10});
+    // 🔹 Fetch latest user data (credits & subscription status)
+    final userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userDoc = await userDocRef.get();
 
-      setState(() {
-        userCredits -= 10;
-      });
-
-      print('Credits deducted! Remaining credits: $userCredits');
+    if (!userDoc.exists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('10 credits deducted for premium wallpaper download.')),
+        SnackBar(content: Text('User data not found. Please try again.')),
       );
+      return;
+    }
+
+    final userData = userDoc.data() as Map<String, dynamic>;
+    bool isSubscribed = userData['subscriptionActive'] ?? false;
+    userCredits = userData['credits'] ?? 0;
+
+    // 🔹 Handle premium wallpaper download logic
+    if (isPremium) {
+      if (!isSubscribed) {
+        // Non-subscribed users require 10 credits
+        if (userCredits < 10) {
+          _showAdDialog(context); // Show ad option if not enough credits
+          return;
+        }
+
+        // Deduct 10 credits for premium wallpaper download
+        await userDocRef.update({'credits': userCredits - 10});
+        setState(() {
+          userCredits -= 10;
+        });
+
+        print('10 credits deducted! Remaining credits: $userCredits');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('10 credits deducted for premium wallpaper download.')),
+        );
+      } else {
+        // ✅ Subscribed users download without credit deduction
+        print('User is subscribed. Downloading without credit deduction.');
+      }
     }
 
     // Proceed with the download
@@ -337,7 +354,7 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
         }
       }
 
-      // Increment the download count
+      // 🔹 Increment the download count
       if (wallpaperKey != null) {
         DatabaseReference wallpaperRef = FirebaseDatabase.instance
             .ref()

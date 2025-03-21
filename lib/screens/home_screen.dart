@@ -36,8 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _startAdTimer();
     fetchWallpapers().then((_) async {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-    _checkAndShowSubscriptionPopup();
-  });
+        _checkAndShowSubscriptionPopup();
+      });
       await fetchWallpaperDetails();
       _searchController.addListener(_filterWallpapers);
     });
@@ -46,71 +46,107 @@ class _HomeScreenState extends State<HomeScreen> {
   // subscription popup
 
   void _checkAndShowSubscriptionPopup() async {
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user == null) return; // No popup for non-logged-in users
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return; // No popup for non-logged-in users
 
-  DocumentReference userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-  DocumentSnapshot userDoc = await userRef.get();
+    DocumentReference userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    DocumentSnapshot userDoc = await userRef.get();
 
-  bool hasSubscription = false;
+    bool hasSubscription = false;
 
-  if (userDoc.exists) {
-    Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
+    if (userDoc.exists) {
+      Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
 
-    // Check if subscriptionActive field exists
-    if (userData != null && userData.containsKey('subscriptionActive')) {
-      hasSubscription = userData['subscriptionActive'] == true;
+      // Check if subscriptionActive field exists
+      if (userData != null && userData.containsKey('subscriptionActive')) {
+        hasSubscription = userData['subscriptionActive'] == true;
+      } else {
+        // If field is missing, add subscriptionActive: false
+        await userRef.update({'subscriptionActive': false});
+      }
     } else {
-      // If field is missing, add subscriptionActive: false
-      await userRef.update({'subscriptionActive': false});
+      // If user document doesn't exist, create one with subscriptionActive: false
+      await userRef.set({'subscriptionActive': false}, SetOptions(merge: true));
     }
-  } else {
-    // If user document doesn't exist, create one with subscriptionActive: false
-    await userRef.set({'subscriptionActive': false}, SetOptions(merge: true));
+
+    if (!hasSubscription) {
+      _showSubscriptionPopup();
+    }
   }
 
-  if (!hasSubscription) {
-    _showSubscriptionPopup();
+  void _showSubscriptionPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Text("Go Premium!",
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset("assets/subscription_promo.png", height: 150),
+              SizedBox(height: 10),
+              Text("Unlock exclusive wallpapers & remove ads.",
+                  style: TextStyle(color: Colors.white)),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close popup
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              SubscriptionPage())); // Navigate to pricing
+                },
+                child: Text("Subscribe Now"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context), // Dismiss popup
+                child: Text("Not Now", style: TextStyle(color: Colors.grey)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
-}
-
-void _showSubscriptionPopup() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text("Go Premium!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset("assets/subscription_promo.png", height: 150),
-            SizedBox(height: 10),
-            Text("Unlock exclusive wallpapers & remove ads.", style: TextStyle(color: Colors.white)),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Close popup
-                Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionPage())); // Navigate to pricing
-              },
-              child: Text("Subscribe Now"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context), // Dismiss popup
-              child: Text("Not Now", style: TextStyle(color: Colors.grey)),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
 
   // custom ads
-  void _startAdTimer() {
-    _scheduleNextAd();
+  void _startAdTimer() async {
+    bool shouldShowAds = await _shouldShowAds();
+    if (shouldShowAds) {
+      _scheduleNextAd();
+    }
+  }
+
+  Future<bool> _shouldShowAds() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          Map<String, dynamic>? userData =
+              userDoc.data() as Map<String, dynamic>?;
+
+          bool isSubscribed = userData?["subscriptionActive"] ?? false;
+
+          return !isSubscribed; // Return true if NOT subscribed
+        }
+      } catch (e) {
+        debugPrint("Error checking subscription status: $e");
+      }
+    }
+    return true; // Default: Show ads if user data is unavailable
   }
 
   void _scheduleNextAd() {
@@ -121,9 +157,34 @@ void _showSubscriptionPopup() {
     });
   }
 
-  void _showCustomAd() {
+  void _showCustomAd() async {
     if (!mounted) return;
 
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          Map<String, dynamic>? userData =
+              userDoc.data() as Map<String, dynamic>?;
+
+          bool isSubscribed = userData?["subscriptionActive"] ?? false;
+
+          if (isSubscribed) {
+            debugPrint("User is subscribed. No ads shown.");
+            return; // Stop ad display for subscribed users
+          }
+        }
+      } catch (e) {
+        debugPrint("Error checking subscription status: $e");
+      }
+    }
+
+    // Show ad if user is NOT subscribed
     Navigator.push(
       context,
       MaterialPageRoute(

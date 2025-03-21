@@ -34,7 +34,36 @@ class RewardedAdHelper {
   }
 
   // Show Rewarded Ad and Give Credits
-  void showRewardedAd(BuildContext context) {
+  void showRewardedAd(BuildContext context) async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          Map<String, dynamic>? userData =
+              userDoc.data() as Map<String, dynamic>?;
+
+          bool isSubscribed = userData?["subscriptionActive"] ?? false;
+
+          if (isSubscribed) {
+            debugPrint("User is subscribed. Rewarded ads disabled.");
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   const SnackBar(
+            //       content: Text("Subscription active. No ads shown.")),
+            // );
+            return; // Stop ad display for subscribed users
+          }
+        }
+      } catch (e) {
+        debugPrint("Error checking subscription status: $e");
+      }
+    }
+
+    // Show the ad if the user is NOT subscribed
     if (!_isAdLoaded || _rewardedAd == null) {
       debugPrint("⚠️ Ad not ready yet. Loading a new one...");
       ScaffoldMessenger.of(context).showSnackBar(

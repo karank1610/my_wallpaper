@@ -1,1 +1,35 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"mywallpaper-1550d","appId":"1:538612664347:android:ea5b002d319b17e72cd0be","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"mywallpaper-1550d","configurations":{"android":"1:538612664347:android:ea5b002d319b17e72cd0be","ios":"1:538612664347:ios:7142fb870091f46a2cd0be"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "mywallpaper-1550d",
+          "appId": "1:538612664347:android:ea5b002d319b17e72cd0be",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "mywallpaper-1550d",
+          "configurations": {
+            "android": "1:538612664347:android:ea5b002d319b17e72cd0be",
+            "ios": "1:538612664347:ios:7142fb870091f46a2cd0be"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}
