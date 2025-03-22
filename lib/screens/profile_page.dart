@@ -31,6 +31,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _email = "guest@example.com";
   List<Map<String, dynamic>> wallpapers = [];
   bool isLoading = true;
+  bool _isSubscribed = false; // Track subscription status
 
   @override
   void initState() {
@@ -66,9 +67,12 @@ class _ProfilePageState extends State<ProfilePage> {
         // 🔹 Ensure username exists
         String username = data?['username'] ?? user.displayName ?? "User";
         int credits = data?['credits'] ?? 10; // Default 10 credits if missing
+        bool isSubscribed =
+            data?['subscriptionActive'] ?? false; // Check subscription
 
         setState(() {
           _userName = username;
+          _isSubscribed = isSubscribed; // Store subscription status
         });
 
         // 🔹 If username or credits are missing, update Firestore
@@ -84,6 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'username': user.displayName ?? "User",
           'email': user.email,
           'credits': 10, // New users get 10 credits
+          'subscriptionActive': false, // Default to non-subscribed
         });
 
         setState(() {
@@ -231,55 +236,66 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
-endDrawer: Drawer(
-  backgroundColor: Colors.black,
-  child: ListView(
-    padding: EdgeInsets.zero,
-    children: [
-      /// **Drawer Header**
-      DrawerHeader(
-        decoration: BoxDecoration(color: Colors.black),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 10),
-            Text("My Wallpaper", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            Text("Exclusive Wallpapers", style: TextStyle(color: Colors.grey, fontSize: 14)),
-          ],
+        endDrawer: Drawer(
+          backgroundColor: Colors.black,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              /// **Drawer Header**
+              DrawerHeader(
+                decoration: BoxDecoration(color: Colors.black),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 10),
+                    Text("My Wallpaper",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold)),
+                    Text("Exclusive Wallpapers",
+                        style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  ],
+                ),
+              ),
+
+              /// **Profile Section**
+              _buildDrawerItem(Icons.person, "Edit Profile", () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => EditProfilePage()));
+              }),
+
+              /// **Favorites Section**
+              _buildDrawerItem(Icons.favorite, "My Favorites", () {
+                // Navigator.push(context, MaterialPageRoute(builder: (context) => FavoritesPage()));
+              }),
+
+              /// **Premium Subscription**
+              Divider(color: Colors.grey[800], thickness: 1),
+              _buildDrawerItem(Icons.workspace_premium, "Buy Premium", () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SubscriptionPage()));
+              }),
+
+              /// **Settings & Help**
+              Divider(color: Colors.grey[800], thickness: 1),
+              _buildDrawerItem(Icons.settings, "Settings", () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => SettingsPage()));
+              }),
+              _buildDrawerItem(Icons.help_outline, "Help & Support", () {
+                // Navigator.push(context, MaterialPageRoute(builder: (context) => HelpSupportPage()));
+              }),
+
+              /// **Logout Option**
+              Divider(color: Colors.grey[800], thickness: 1),
+              _buildDrawerItem(
+                  Icons.exit_to_app, "Logout", _showLogoutConfirmation),
+            ],
+          ),
         ),
-      ),
-
-      /// **Profile Section**
-      _buildDrawerItem(Icons.person, "Edit Profile", () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilePage()));
-      }),
-      
-      /// **Favorites Section**
-      _buildDrawerItem(Icons.favorite, "My Favorites", () {
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => FavoritesPage()));
-      }),
-
-      /// **Premium Subscription**
-      Divider(color: Colors.grey[800], thickness: 1),
-      _buildDrawerItem(Icons.workspace_premium, "Buy Premium", () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionPage()));
-      }),
-
-      /// **Settings & Help**
-      Divider(color: Colors.grey[800], thickness: 1),
-      _buildDrawerItem(Icons.settings, "Settings", () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
-      }),
-      _buildDrawerItem(Icons.help_outline, "Help & Support", () {
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => HelpSupportPage()));
-      }),
-
-      /// **Logout Option**
-      Divider(color: Colors.grey[800], thickness: 1),
-      _buildDrawerItem(Icons.exit_to_app, "Logout", _showLogoutConfirmation),
-    ],
-  ),
-),
         body: RefreshIndicator(
           onRefresh: _refreshPage,
           color: const Color.fromARGB(204, 163, 56, 233),
@@ -295,7 +311,9 @@ endDrawer: Drawer(
                 ),
                 SizedBox(height: 10),
                 Text(_userName,
-                    style: TextStyle(color: Colors.white, fontSize: 18)),
+                    style: TextStyle(
+                        color: _isSubscribed ? Colors.amber : Colors.white,
+                        fontSize: 18)),
                 Text(_email,
                     style: TextStyle(color: Colors.grey, fontSize: 14)),
                 FutureBuilder<int>(
