@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_wallpaper/screens/Edit_profile_page.dart';
 import 'package:my_wallpaper/screens/favorites_page.dart';
 import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
+import 'package:my_wallpaper/screens/help_support_page.dart';
 import 'package:my_wallpaper/screens/home_screen.dart';
 import 'package:my_wallpaper/screens/settings.dart';
 import 'package:my_wallpaper/screens/subscription_page.dart';
@@ -288,7 +289,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     MaterialPageRoute(builder: (context) => SettingsPage()));
               }),
               _buildDrawerItem(Icons.help_outline, "Help & Support", () {
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => HelpSupportPage()));
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => HelpSupportPage()));
               }),
 
               /// **Logout Option**
