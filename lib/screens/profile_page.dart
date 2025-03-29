@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_wallpaper/screens/Edit_profile_page.dart';
+import 'package:my_wallpaper/screens/favorites_page.dart';
 import 'package:my_wallpaper/screens/full_screen_wallpaper.dart';
 import 'package:my_wallpaper/screens/home_screen.dart';
 import 'package:my_wallpaper/screens/settings.dart';
@@ -267,7 +268,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
               /// **Favorites Section**
               _buildDrawerItem(Icons.favorite, "My Favorites", () {
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => FavoritesPage()));
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => FavoritesPage()));
               }),
 
               /// **Premium Subscription**
