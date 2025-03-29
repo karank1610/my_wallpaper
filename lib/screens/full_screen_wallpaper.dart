@@ -180,7 +180,17 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
       DatabaseReference likesRef =
           wallpaperRef.child('likedBy').child(user.uid);
 
+      final wallpaperSnapshot = await wallpaperRef.get();
+      if (!wallpaperSnapshot.exists) return;
+
+      // Extract wallpaper data
+      Map<dynamic, dynamic>? wallpaperData =
+          wallpaperSnapshot.value as Map<dynamic, dynamic>?;
+
+      String? uploadedBy = wallpaperData?['uploadedBy'];
+
       if (isLiked) {
+        // Unlike the wallpaper
         await likesRef.remove();
         await wallpaperRef
             .update({'likes': (likesCount - 1).clamp(0, double.infinity)});
@@ -189,15 +199,70 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
           likesCount = (likesCount - 1).clamp(0, double.infinity).toInt();
         });
       } else {
+        // Like the wallpaper
         await likesRef.set(true);
         await wallpaperRef.update({'likes': likesCount + 1});
         setState(() {
           isLiked = true;
           likesCount += 1;
         });
+
+        // Send notification if the wallpaper is not the user's own
+        if (uploadedBy != null && uploadedBy != user.uid) {
+          await _sendLikeNotification(
+              uploadedBy, wallpaperData?['name'], wallpaperData?['imageUrl']);
+        }
       }
     } catch (e) {
-      print("Error updating like count: $e");
+      print("❌ Error updating like count: $e");
+    }
+  }
+
+// 🔹 Fixed `_sendLikeNotification()` function
+  Future<void> _sendLikeNotification(
+      String uploadedBy, String? wallpaperName, String? imageUrl) async {
+    try {
+      if (wallpaperKey == null) return;
+
+      // Fetch wallpaper details from Realtime Database
+      DatabaseReference wallpaperRef = FirebaseDatabase.instance
+          .ref()
+          .child('wallpapers')
+          .child(wallpaperKey!);
+
+      final wallpaperSnapshot = await wallpaperRef.get();
+      if (!wallpaperSnapshot.exists) return;
+
+      // Extract wallpaper data
+      Map<dynamic, dynamic>? wallpaperData =
+          wallpaperSnapshot.value as Map<dynamic, dynamic>?;
+
+      String? uploadedBy =
+          wallpaperData?['uploadedBy']; // User who uploaded the wallpaper
+      String? imageUrl = wallpaperData?['imageUrl']; // Wallpaper image URL
+      String? wallpaperName = wallpaperData?['name']; // Wallpaper name
+
+      if (uploadedBy == null || imageUrl == null || wallpaperName == null) {
+        print("Missing required fields, skipping notification...");
+        return;
+      }
+
+      // Send notification to the uploadedBy user
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uploadedBy)
+          .collection('notifications')
+          .add({
+        'title': "Your wallpaper received a like!",
+        'message': "Someone liked your wallpaper: $wallpaperName",
+        'imageUrl': imageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+        'read': false,
+      });
+
+      print("Notification sent successfully!");
+    } catch (e) {
+      print("Error sending notification: $e");
     }
   }
 

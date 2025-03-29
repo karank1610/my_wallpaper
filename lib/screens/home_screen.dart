@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_wallpaper/screens/notification_page.dart';
 import 'package:my_wallpaper/screens/subscription_page.dart';
-
 import 'custom_ad_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -303,9 +303,49 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.notifications, color: Colors.white),
-          onPressed: () {},
+        leading: StreamBuilder<QuerySnapshot>( // ✅ StreamBuilder for notifications
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(FirebaseAuth.instance.currentUser?.uid)
+              .collection('notifications')
+              .where('read',
+                  isEqualTo: false) // ✅ Only count unread notifications
+              .snapshots(),
+          builder: (context, snapshot) {
+            int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+            return Stack(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.notifications, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => NotificationPage()),
+                    );
+                  },
+                ),
+                if (unreadCount >
+                    0) // ✅ Show red dot only if there are unread notifications
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 12,
+                        minHeight: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         centerTitle: true,
         title: Text(
