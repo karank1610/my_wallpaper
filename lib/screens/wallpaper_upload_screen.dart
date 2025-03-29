@@ -6,6 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
 class WallpaperUploadScreen extends StatefulWidget {
+  final VoidCallback onNavigateToHome;
+
+  const WallpaperUploadScreen({Key? key, required this.onNavigateToHome})
+      : super(key: key);
+
   @override
   _WallpaperUploadScreenState createState() => _WallpaperUploadScreenState();
 }
@@ -122,6 +127,16 @@ class _WallpaperUploadScreenState extends State<WallpaperUploadScreen> {
         title: Text(
           'Upload Wallpaper',
           style: TextStyle(color: Colors.white),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_sharp, color: Colors.white),
+          onPressed: () {
+            if (mounted) {
+              // ✅ Check before calling
+              widget.onNavigateToHome();
+            }
+            Navigator.of(context).pop();
+          },
         ),
       ),
       backgroundColor: Colors.black87,

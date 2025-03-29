@@ -303,7 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: StreamBuilder<QuerySnapshot>( // ✅ StreamBuilder for notifications
+        leading: StreamBuilder<QuerySnapshot>(
+          // ✅ StreamBuilder for notifications
           stream: FirebaseFirestore.instance
               .collection('users')
               .doc(FirebaseAuth.instance.currentUser?.uid)
@@ -500,7 +501,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (user != null) {
                   showDialog(
                     context: context,
-                    builder: (_) => WallpaperUploadScreen(),
+                    builder: (_) => WallpaperUploadScreen(
+                      onNavigateToHome: () {
+                        setState(() {
+                          myCurrentIndex = 0;
+                        });
+                      },
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
