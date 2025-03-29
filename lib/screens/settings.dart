@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'about_us_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'edit_profile_page.dart'; // Page for editing profile details
+import 'subscription_page.dart'; // Subscription page
+import 'about_us_page.dart'; // About Us page
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -9,9 +12,16 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool messageNotifications = false;
-  bool autoDownloadResources = false;
-  bool applyMonthlyResources = false;
+  bool notificationsEnabled = true;
+  bool darkMode = true;
+
+  void _logoutUser() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pop(context); // Close settings
+      // You might want to redirect to the login page here
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,89 +33,81 @@ class _SettingsPageState extends State<SettingsPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: ListView(
         children: [
+          /// **Profile Options**
           SettingsTile(
-            title: "Buy Premium",
-            hasToggle: false,
-            hasArrow: true,
-          ),
-          SettingsTile(
-            title: "Auto update app",
-            subtitle: "Do not auto update",
-            hasToggle: false,
-            hasArrow: true,
-          ),
-          SettingsTile(
-            title: "Get data reminders for downloads",
-            subtitle: "Never",
-            hasToggle: false,
-            hasArrow: true,
-          ),
-          SettingsTile(
-            title: "Message notifications",
-            hasToggle: true,
-            isToggled: messageNotifications,
-            onToggle: (value) {
-              setState(() {
-                messageNotifications = value;
-              });
-            },
-          ),
-          SettingsTile(
-            title: "Automatically download free monthly featured resources",
-            hasToggle: true,
-            isToggled: autoDownloadResources,
-            onToggle: (value) {
-              setState(() {
-                autoDownloadResources = value;
-              });
-            },
-          ),
-          SettingsTile(
-            title: "Automatically apply free monthly featured resources",
-            hasToggle: true,
-            isToggled: applyMonthlyResources,
-            onToggle: (value) {
-              setState(() {
-                applyMonthlyResources = value;
-              });
-            },
-          ),
-          SettingsTile(
-            title: "Version number",
-            subtitle: "15.3.0_expt_in_release_77230a0_250115",
-            hasToggle: false,
-            hasArrow: true,
-          ),
-          ListTile(
-            title: const Text(
-              "Check for updates",
-              style: TextStyle(color: Colors.blue, fontSize: 16),
-            ),
-            onTap: () {},
-          ),
-          SettingsTile(
-            title: "Clear cache",
-            subtitle: "Cache empty",
-            hasToggle: false,
-            hasArrow: true,
-          ),
-          SettingsTile(
-            title: "About Us",
-            hasToggle: false,
+            title: "Change Profile Picture",
             hasArrow: true,
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  AboutUsPage()),
+                MaterialPageRoute(builder: (context) => EditProfilePage()),
               );
             },
+          ),
+
+          /// **Premium Subscription**
+          SettingsTile(
+            title: "Buy Premium",
+            hasArrow: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SubscriptionPage()),
+              );
+            },
+          ),
+
+          /// **Notification Settings**
+          SettingsTile(
+            title: "Enable Notifications",
+            hasToggle: true,
+            isToggled: notificationsEnabled,
+            onToggle: (value) {
+              setState(() {
+                notificationsEnabled = value;
+              });
+            },
+          ),
+
+          /// **Version Info**
+          SettingsTile(
+            title: "Version",
+            subtitle: "1.0.0",
+            hasArrow: false,
+          ),
+
+          /// **Clear Cache**
+          SettingsTile(
+            title: "Clear Cache",
+            subtitle: "Free up space",
+            hasArrow: true,
+            onTap: () {
+              // Implement cache clearing functionality
+            },
+          ),
+
+          /// **About Us**
+          SettingsTile(
+            title: "About Us",
+            hasArrow: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AboutUsPage()),
+              );
+            },
+          ),
+
+          /// **Logout**
+          SettingsTile(
+            title: "Logout",
+            hasArrow: true,
+            onTap: _logoutUser,
           ),
         ],
       ),
@@ -113,6 +115,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+/// **Reusable Settings Tile Widget**
 class SettingsTile extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -147,7 +150,8 @@ class SettingsTile extends StatelessWidget {
               activeColor: Colors.blue,
             )
           : hasArrow
-              ? const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16)
+              ? const Icon(Icons.arrow_forward_ios,
+                  color: Colors.white, size: 16)
               : null,
       onTap: onTap,
     );
