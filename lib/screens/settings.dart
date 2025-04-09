@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'edit_profile_page.dart'; // Page for editing profile details
+// import 'edit_profile_page.dart'; // Page for editing profile details
 import 'subscription_page.dart'; // Subscription page
 import 'about_us_page.dart'; // About Us page
 
@@ -38,17 +38,17 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: ListView(
         children: [
-          /// **Profile Options**
-          SettingsTile(
-            title: "Change Profile Picture",
-            hasArrow: true,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => EditProfilePage()),
-              );
-            },
-          ),
+          //   /// **Profile Options**
+          //   SettingsTile(
+          //     title: "Change Profile Picture",
+          //     hasArrow: true,
+          //     onTap: () {
+          //       Navigator.push(
+          //         context,
+          //         MaterialPageRoute(builder: (context) => EditProfilePage()),
+          //       );
+          //     },
+          //   ),
 
           /// **Premium Subscription**
           SettingsTile(
@@ -82,14 +82,14 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
 
           /// **Clear Cache**
-          SettingsTile(
-            title: "Clear Cache",
-            subtitle: "Free up space",
-            hasArrow: true,
-            onTap: () {
-              // Implement cache clearing functionality
-            },
-          ),
+          // SettingsTile(
+          //   title: "Clear Cache",
+          //   subtitle: "Free up space",
+          //   hasArrow: true,
+          //   onTap: () {
+          //     // Implement cache clearing functionality
+          //   },
+          // ),
 
           /// **About Us**
           SettingsTile(
