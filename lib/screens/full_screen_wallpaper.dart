@@ -380,6 +380,32 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
         print('User is subscribed. Downloading without credit deduction.');
       }
     }
+    // Reward uploader with 5 credits
+    if (isPremium && wallpaperKey != null) {
+      final wallpaperRef = FirebaseDatabase.instance
+          .ref()
+          .child('wallpapers')
+          .child(wallpaperKey!);
+      final wallpaperSnapshot = await wallpaperRef.get();
+
+      if (wallpaperSnapshot.exists) {
+        final wallpaperData = wallpaperSnapshot.value as Map<dynamic, dynamic>;
+        String? uploadedBy = wallpaperData['uploadedBy'];
+
+        if (uploadedBy != null && uploadedBy != user.uid) {
+          final uploaderRef =
+              FirebaseFirestore.instance.collection('users').doc(uploadedBy);
+          final uploaderDoc = await uploaderRef.get();
+          int uploaderCredits = uploaderDoc.data()?['credits'] ?? 0;
+
+          await uploaderRef.update({
+            'credits': uploaderCredits + 5,
+          });
+
+          print('Uploader rewarded with 5 credits.');
+        }
+      }
+    }
 
     // Proceed with the download
     if (Platform.isAndroid) {
