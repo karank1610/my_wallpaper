@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:dio/dio.dart';
 
 class FullScreenWallpaper extends StatefulWidget {
   final String imagePath;
@@ -443,15 +444,40 @@ class _FullScreenWallpaperState extends State<FullScreenWallpaper> {
     }
   }
 
-  void _handleShare() async {
-    if (imageUrl != null) {
-      await Share.share(
-        'Check out this awesome wallpaper: $imageUrl',
-        subject: 'Awesome Wallpaper!',
-      );
-    } else {
+  Future<void> _handleShare() async {
+    if (imageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to share wallpaper')),
+        const SnackBar(content: Text('Unable to share wallpaper')),
+      );
+      return;
+    }
+
+    try {
+      // Step 1: Download the image first
+      final response = await Dio().get(
+        imageUrl!,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      // Step 2: Save to temporary directory
+      final tempDir = await getTemporaryDirectory();
+      final filePath =
+          '${tempDir.path}/shared_wallpaper_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final file = File(filePath);
+      await file.writeAsBytes(response.data);
+
+      // Step 3: Share with proper metadata
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Check out this awesome wallpaper from MyWallpaper App!',
+        subject: 'Amazing Wallpaper for you!',
+      );
+
+      // Optional: Delete the temp file after sharing
+      await file.delete();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to share: ${e.toString()}')),
       );
     }
   }
